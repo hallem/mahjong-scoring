@@ -1,8 +1,9 @@
-# This repo tracks only the Chinese Classical scoring worksheet.
-# Ignore everything else in the surrounding folder by default.
-/*
+# OS / IDE / tooling cruft
+.DS_Store
+.idea/
+.claude/
 
-# ...but keep these tracked files.
-!.gitignore
-!LICENSE
-!chinese_classical_scoring_worksheet_dynamic.html
+# Backups and superseded copies
+*.bak
+_old_*
+Old/

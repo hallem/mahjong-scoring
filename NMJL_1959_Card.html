@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1959 National Mahjong League Card</title>
+    <link rel="stylesheet" href="mahjong_reference_compendium_6.css">
+    <style>
+        .nmjl-theme {
+            --theme-header-bg: #2271b1;
+            --theme-section-bg: #2a85d0;
+            --theme-legend-bg: #f0f7fc;
+            --theme-legend-border: #d4e6f4;
+            --theme-legend-title: #174f7c;
+            --theme-num-color: #174f7c;
+            --theme-row-even-bg: #f8fbfe;
+            --theme-desc-color: #2b2e35;
+        }
+        .u-text-bold { font-weight: bold; }
+        .section-note {
+            padding: 8px 12px;
+            background-color: var(--theme-legend-bg);
+            border-bottom: 1px solid var(--theme-legend-border);
+            color: var(--theme-desc-color);
+            font-size: 9.5pt;
+        }
+
+        /* ============================================================
+           TWO PRINT MODES (chosen by the buttons at the top):
+             • mode-card  → tri-fold reference card: three 6⅛in × 4¾in
+                            landscape panels side by side, printed on one
+                            18.375in × 4.75in sheet, folds into thirds.
+             • mode-half  → the original flowing document, printed on A5
+                            (exactly how it printed before the card layout).
+           Layout is driven by the body.mode-* class (works on screen AND
+           print). Only the physical @page SIZE is swapped by JS in the
+           #print-mode element, because @page rules can't be class-scoped.
+           Everything is scoped here — the shared stylesheet is untouched.
+           ============================================================ */
+
+        /* On-screen control bar — never printed */
+        .print-controls {
+            position: sticky; top: 0; z-index: 10;
+            display: flex; gap: 8px; align-items: center;
+            padding: 8px 16px;
+            background: #eef4fa;
+            border-bottom: 1px solid #d4e6f4;
+            font-size: 10pt;
+        }
+        .print-controls .pc-label { font-weight: bold; color: #174f7c; margin-right: 4px; }
+        .print-controls button {
+            font: inherit; cursor: pointer;
+            padding: 5px 12px; border-radius: 4px;
+            border: 1px solid #b9c8d8; background: #ffffff; color: #2b2e35;
+        }
+        .print-controls button.is-active { background: #2271b1; color: #ffffff; border-color: #2271b1; }
+        .print-controls .pc-print { margin-left: auto; background: #2271b1; color: #ffffff; border-color: #2271b1; }
+        @media print { .print-controls { display: none !important; } }
+
+        /* ---- SHARED CARD TYPOGRAPHY & PANEL SIZING ----
+           Applies to BOTH card modes (body.cardtype = Full card OR one
+           panel per page). Overrides use body.cardtype descendant selectors
+           so they beat the shared single-class rules without !important.
+           Tune --card-scale to fit content to the 6⅛in × 4¾in panels. */
+        body.cardtype .nmjl-card { --card-scale: 0.93; }
+        body.cardtype .nmjl-panel {
+            width: 6.125in;
+            height: 4.75in;
+            overflow: hidden;
+            padding: 0.14in 0.12in;
+            font-size: calc(7.6pt * var(--card-scale));
+        }
+        body.cardtype .nmjl-card-title {
+            text-align: center;
+            font-weight: bold;
+            color: var(--theme-legend-title);
+            font-size: 1.3em;
+            letter-spacing: 0.3px;
+            margin-bottom: 5px;
+        }
+        body.cardtype .section-box { margin-bottom: 6px; }
+        body.cardtype .section-box:last-child { margin-bottom: 0; }
+        body.cardtype .section-header { font-size: 1.02em; padding: 2px 6px; margin-bottom: 3px; border-radius: 3px; }
+        body.cardtype .c-table-container { padding: 0; gap: 0; }
+        body.cardtype .c-table-card { border-radius: 3px; }
+        body.cardtype .c-table-th { font-size: 0.85em; padding: 1px 4px; }
+        body.cardtype .c-table-td { font-size: 1em; padding: 1px 4px; line-height: 1.12; }
+
+        /* ---- FULL CARD: three panels side by side on one 18.375×4.75in sheet ---- */
+        body.mode-card .nmjl-card {
+            display: flex;
+            width: 18.375in;             /* 3 × 6.125in */
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #b9c8d8;
+        }
+        body.mode-card .nmjl-panel { border-right: 1px dashed #b9c8d8; }   /* faint fold line */
+        body.mode-card .nmjl-panel:last-child { border-right: none; }
+        @media screen {
+            body.mode-card .nmjl-card { box-shadow: 0 4px 16px rgba(0,0,0,0.12); margin: 12px auto; }
+        }
+        @media print {
+            body.mode-card .header { display: none; }   /* card: screen title only */
+            body.mode-card .book-container { padding: 0; }
+            body.mode-card .nmjl-card { border: none; box-shadow: none; margin: 0; }
+        }
+
+        /* ---- ONE PANEL PER PAGE: each 6.125×4.75in panel on its own sheet ---- */
+        body.mode-panels .nmjl-card { display: block; width: auto; margin: 0; }
+        body.mode-panels .nmjl-panel {
+            border: 1px dashed #b9c8d8;            /* trim / assembly guide */
+            page-break-after: always;
+            break-after: page;
+        }
+        body.mode-panels .nmjl-panel:last-child { page-break-after: auto; break-after: auto; }
+        @media screen {
+            body.mode-panels .nmjl-panel { margin: 12px auto; box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+        }
+        @media print {
+            body.mode-panels .header { display: none; }   /* card: screen title only */
+            body.mode-panels .book-container { padding: 0; }
+        }
+
+        /* ---- PAPER MODES (A5 / Letter): original document layout ----
+           No card styling applies, so .nmjl-card / .nmjl-panel fall back to
+           plain block divs and the sections flow exactly as before. Only the
+           @page size differs between A5 and Letter (swapped in #print-mode). */
+        body:not(.cardtype) .nmjl-card-title { display: none; }   /* card-only element */
+    </style>
+    <!-- @page SIZE is swapped here by JS per mode (can't be class-scoped) -->
+    <style id="print-mode">@page { size: 18.375in 4.75in; margin: 0; }</style>
+</head>
+<body class="mode-card cardtype">
+    <div class="print-controls">
+        <span class="pc-label">Print format:</span>
+        <button type="button" id="btn-card" class="is-active" onclick="setMode('mode-card')">Full Card</button>
+        <button type="button" id="btn-panels" onclick="setMode('mode-panels')">Full Card &mdash; 1 panel/page</button>
+        <button type="button" id="btn-half" onclick="setMode('mode-half')">A5</button>
+        <button type="button" id="btn-letter" onclick="setMode('mode-letter')">Letter</button>
+        <button type="button" class="pc-print" onclick="window.print()">Print&hellip;</button>
+    </div>
+    <div class="book-container">
+        <div id="section-nmjl-1958" class="book-page nmjl-theme">
+            <div class="header">
+                <h1>1959 National Mahjong League Card</h1>
+            </div>
+
+            <div class="nmjl-card">
+                <!-- Panel 1: Bouquet Hands, Consecutive Runs, Odds -->
+                <div class="nmjl-panel">
+                    <div class="nmjl-card-title">National Mah Jongg League &middot; 1959</div>
+
+            <div id="section-bouquet-hands" class="section-box">
+                <div class="section-header">1958 Bouquet Hands</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="bam">1958</span> <span class="crak">1958</span> <span class="dot">1958</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c130-260</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="section-consecutive-runs" class="section-box">
+                <div class="section-header">Consecutive Runs</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="bam">122345</span> <span class="crak">222</span> <span class="dot">222</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run of 5 Nos. Double Any No. with Match. Pungs)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">3</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFF</span> <span class="dot">11 2345678 99</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c120-240</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">4</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFF</span> <span class="dot">11 22 33 44 55</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run 5 Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c120-240</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">4</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFF</span> <span class="dot">111 2222 333</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run 3 Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">4</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFF</span> <span class="bam">111</span> <span class="crak">2222</span> <span class="dot">333</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run 3 Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c140-280</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="dot">111 222 333 444 55</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run 5 Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x160-320</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">111 222</span> <span class="crak">333 444</span> <span class="dot">55</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run 5 Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x160-320</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="dot">11 22 33 44 55 66 77</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Run 7 Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="dot">11 2</span> <span class="crak">11 22 3</span> <span class="bam">11 22 33</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(These Nos. Only)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c160-320</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="dot">99 8</span> <span class="crak">99 88 7</span> <span class="bam">99 88 77</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(These Nos. Only)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c160-320</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">11 234 55</span> <span class="crak">11 234 55</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(These Nos. Only)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">55 678 99</span> <span class="crak">55 678 99</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(These Nos. Only)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="section-odds" class="section-box">
+                <div class="section-header">Odds</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">4</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFF</span> <span class="dot">11 33 55 77 99</span> or <span class="pattern-group"><span class="flower">FFFF</span> <span class="bam">11 33</span> <span class="crak">55 77</span> <span class="dot">99</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c120-240</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="dot">111 333 555 777 99</span> or <span class="pattern-group"><span class="bam">111 333</span> <span class="crak">555 777</span> <span class="dot">99</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x150-300</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">11 357 99</span> <span class="crak">11 357 99</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                </div>
+                <!-- Panel 2: Any Like Numerals, 369, Seven Hands -->
+                <div class="nmjl-panel">
+            <div id="section-any-like-numerals" class="section-box">
+                <div class="section-header">Any Like Numerals</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="dot">11 DD</span> <span class="crak">11 DD</span> <span class="bam">11 DD</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Like Nos. Match. D.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="dot">111 DDD</span> <span class="crak">111 DDD</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Like Nos. Match. D.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="bam">111 888</span> <span class="crak">111 888</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any 2 Like Nos. —<br>Pungs Must Be Lower No.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">111 8888</span> <span class="crak">111 8888</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any 2 Like Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x160-320</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">8</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFF</span> <span class="bam">111</span> <span class="flower">FFFF</span> <span class="crak">111</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any 2 Like Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="section-369" class="section-box">
+                <div class="section-header">369</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="dot">333 666 999 DDD</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Match. D.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x150-300</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="bam">33 66 99</span> <span class="crak">33 66 99</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c140-280</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="crak">RRR</span> <span class="dot">333</span> <span class="bam">GGG</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Pungs any two Dragons —<br>3, 6 or 9 in 3rd Suit)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="dot">333 666 999</span> or <span class="pattern-group"><span class="flower">FFFFF</span> <span class="bam">333</span> <span class="crak">666</span> <span class="dot">999</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">33 6</span> <span class="crak">33 66 9</span> <span class="dot">33 66 99</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="section-seven-hands" class="section-box">
+                <div class="section-header">Seven Hands (These Nos. Only)</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="dot">111</span> + <span class="dot">666</span> = <span class="dot">777</span> or <span class="pattern-group"><span class="flower">FFFFF</span> <span class="bam">111</span> + <span class="crak">666</span> = <span class="dot">777</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="dot">222</span> + <span class="dot">555</span> = <span class="dot">777</span> or <span class="pattern-group"><span class="flower">FFFFF</span> <span class="bam">222</span> + <span class="crak">555</span> = <span class="dot">777</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="dot">333</span> + <span class="dot">444</span> = <span class="dot">777</span> or <span class="pattern-group"><span class="flower">FFFFF</span> <span class="bam">333</span> + <span class="crak">444</span> = <span class="dot">777</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">7</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFFFF</span> <span class="dot">111</span> <span class="dot">6666</span> or <span class="pattern-group"><span class="flower">FFFFFFF</span> <span class="bam">111</span> <span class="crak">6666</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x150-300</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">7</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFFFF</span> <span class="dot">222</span> <span class="dot">5555</span> or <span class="pattern-group"><span class="flower">FFFFFFF</span> <span class="bam">222</span> <span class="crak">5555</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x150-300</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">7</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFFFF</span> <span class="dot">333</span> <span class="dot">4444</span> or <span class="pattern-group"><span class="flower">FFFFFFF</span> <span class="bam">333</span> <span class="crak">4444</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x150-300</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                </div>
+                <!-- Panel 3: 2468, Winds and Dragons, Any Combinations, Unlimited Flower Hands -->
+                <div class="nmjl-panel">
+            <div id="section-2468" class="section-box">
+                <div class="section-header">2468</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="dot">222 444 666 888</span> or <span class="flower">FF</span> <span class="pattern-group"><span class="bam">222 444</span> <span class="crak">666 888</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">22 44 66 88</span> <span class="crak">2468</span> <span class="dot">22</span> or <span class="pattern-group"><span class="bam">22 44 66 88</span> <span class="crak">2468</span> <span class="dot">88</span></span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c150-300</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="bam">22 44 66 88</span> <span class="crak">111</span> <span class="dot">111</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Like Odds in 2 Other Suits)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c160-320</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="section-winds-and-dragons" class="section-box">
+                <div class="section-header">Winds and Dragons</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="wind">NNN</span> <span class="bam">111</span> <span class="wind">SSS</span> <span class="crak">111</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Like Odds)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="wind">EEE</span> <span class="bam">222</span> <span class="wind">WWW</span> <span class="crak">222</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Like Evens)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="crak">RRR</span> <span class="dot">BBB</span> <span class="bam">GGG</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x140-280</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="wind">NN EE WW SS</span> <span class="crak">RR</span> <span class="dot">BB</span> <span class="bam">GG</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c160-320</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="section-any-combinations" class="section-box">
+                <div class="section-header">Any Combinations</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">2</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FF</span> <span class="bam">1111</span> <span class="crak">4444</span> <span class="wind">EEEE</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any 3 Kongs. One or More Suits. Winds or Dragons May Be Included)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x150-300</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">5</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFF</span> <span class="bam">111</span> <span class="crak">555</span> <span class="dot">888</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Pungs any Nos.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">c130-260</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">6</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFFF</span> <span class="dot">1111</span> <span class="wind">EEEE</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Any 2 Kongs. One or More Suits. Winds or Dragons May Be Included)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x120-240</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-box">
+                <div class="section-header">Unlimited Flower Hands</div>
+                <div class="c-table-container">
+                    <div class="c-table-card">
+                        <div class="c-table-row c-table-header">
+                            <div class="c-table-th u-text-left u-col-1">Flowers</div>
+                            <div class="c-table-th u-text-left u-col-3">Hand / Pattern</div>
+                            <div class="c-table-th u-text-left u-col-2">Rules / Notes</div>
+                            <div class="c-table-th u-text-right u-col-1">Value</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">7</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="flower">FFFFFFF</span> <span class="dot">4444444</span></div>
+                            <div class="c-table-td u-text-left u-col-2">(Sept. of Flowers & Sept. of Anything)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="wind">NNNNNNN SSSSSSS</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="wind">EEEEEEE</span> <span class="wind">WWWWWWW</span></div>
+                            <div class="c-table-td u-text-left u-col-2"></div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                        <div class="c-table-row c-row-alt">
+                            <div class="c-table-td u-text-left u-col-1">—</div>
+                            <div class="c-table-td u-text-left u-text-bold u-col-3"><span class="wind">NNNNNNN</span> DDDDDDD</div>
+                            <div class="c-table-td u-text-left u-col-2">(Any Winds and Any Dragons.)</div>
+                            <div class="c-table-td u-text-right u-col-1 u-text-bold">x130-260</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Switch print format. Layout comes from the body.mode-* class;
+        // the physical page size is swapped in #print-mode (see note above).
+        var PAGE = {
+            'mode-card':   '@page { size: 18.375in 4.75in; margin: 0; }',
+            'mode-panels': '@page { size: 6.125in 4.75in; margin: 0; }',
+            'mode-half':   '@page { size: A5; margin: 10mm; }',
+            'mode-letter': '@page { size: Letter; margin: 10mm; }'
+        };
+        function setMode(mode) {
+            document.body.classList.remove('mode-card', 'mode-panels', 'mode-half', 'mode-letter', 'cardtype');
+            document.body.classList.add(mode);
+            // both card layouts share the dense card typography
+            if (mode === 'mode-card' || mode === 'mode-panels') document.body.classList.add('cardtype');
+            ['card', 'panels', 'half', 'letter'].forEach(function (k) {
+                document.getElementById('btn-' + k).classList.toggle('is-active', 'mode-' + k === mode);
+            });
+            document.getElementById('print-mode').textContent = PAGE[mode];
+        }
+    </script>
+</body>
+</html>

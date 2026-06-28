@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mahjong Scorer</title>
+    <style>
+    @page {
+        size: letter portrait;
+        margin: 0;
+    }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #222;
+        background-color: #fff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .page-container {
+        width: 8.5in;
+        height: 11in;
+        box-sizing: border-box;
+        position: relative;
+        padding: 0.4in;
+    }
+
+    .half-sheet {
+        width: 7.7in;
+        height: 4.8in;
+        box-sizing: border-box;
+        padding: 0.1in 0.3in;
+        position: absolute;
+        background: #fff;
+    }
+
+    .top-half {
+        top: 0.4in;
+    }
+
+    .bottom-half {
+        top: 5.8in;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #b32424;
+        padding-bottom: 4px;
+        margin-bottom: 8px;
+    }
+
+    .title-grid-table {
+        display: grid;
+        grid-template-columns:auto 1fr;
+        grid-template-rows:auto auto;
+        align-items: center;
+    }
+
+    .title-icon {
+        grid-row: span 2;
+        font-size: 20pt;
+        padding-right: 6px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    .title-line1 {
+        grid-column: 2;
+        font-size: 12pt;
+        color: #b32424;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: bold;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .title-line2 {
+        grid-column: 2;
+        font-size: 12pt;
+        color: #b32424;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: bold;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .meta-inputs {
+        display: flex;
+        gap: 12px;
+        font-size: 9pt;
+        font-weight: bold;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .meta-box {
+        border: 1px solid #666;
+        width: 70px;
+        height: 48px;
+        background: #fcfcfc;
+        box-sizing: border-box;
+    }
+
+    .scores-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        background: #f9f9f9;
+        padding: 4px 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .score-entry {
+        text-align: center;
+        flex: 1;
+    }
+
+    .score-entry span {
+        display: block;
+        font-size: 8pt;
+        font-weight: bold;
+        color: #444;
+        margin-bottom: 2px;
+    }
+
+    .score-box {
+        border: 1px solid #666;
+        width: 70px;
+        height: 48px;
+        margin: 0 auto;
+        background: #fff;
+        box-sizing: border-box;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 8px;
+        font-size: 8.5pt;
+    }
+
+    th, td {
+        border: 1px solid #444;
+        text-align: center;
+        padding: 22px 2px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        padding: 4px 2px;
+    }
+
+    td:first-child {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        width: 14%;
+        padding: 22px 2px;
+    }
+
+    .pay-col {
+        width: 17%;
+    }
+
+    .net-col {
+        background-color: #fdf2f2;
+        font-weight: bold;
+        width: 18%;
+        border-left: 2px solid #b32424;
+    }
+
+    th.net-col {
+        background-color: #b32424 !important;
+        color: #fff;
+    }
+
+    .diagonal {
+        background-color: #ddd !important;
+        color: #777;
+    }
+
+    .rules-footer {
+        font-size: 9pt;
+        line-height: 1.2;
+        color: #333;
+        background: #f7f7f7;
+        padding: 4px 8px;
+        border-left: 3px solid #b32424;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .rules-column {
+        flex: 1;
+    }
+
+    .rules-column:first-child {
+        border-right: 1px dashed #ccc;
+        padding-right: 10px;
+        margin-right: 10px;
+    }
+
+    .rules-footer strong {
+        color: #b32424;
+        text-transform: uppercase;
+        font-size: 10pt;
+        display: block;
+        margin-bottom: 1px;
+    }
+
+    .cut-line {
+        position: absolute;
+        top: 5.5in;
+        left: 0;
+        width: 8.5in;
+        border-top: 1px dashed #bbb;
+    }
+    </style>
+</head>
+<body>
+<div class="page-container"><!-- TOP SHEET -->
+    <div class="half-sheet top-half">
+        <div class="header">
+            <div class="title-grid-table">
+                <div class="title-icon">🀄</div>
+                <div class="title-line1">Chinese Classical Mahjong</div>
+                <div class="title-line2">Scoring Grid</div>
+            </div>
+            <div class="meta-inputs">
+                <div class="meta-item">Round Wind:
+                    <div class="meta-box"></div>
+                </div>
+                <div class="meta-item">Winner Seat:
+                    <div class="meta-box"></div>
+                </div>
+            </div>
+        </div>
+        <div class="scores-container">
+            <div class="score-entry"><span>EAST Score</span>
+                <div class="score-box"></div>
+            </div>
+            <div class="score-entry"><span>SOUTH Score</span>
+                <div class="score-box"></div>
+            </div>
+            <div class="score-entry"><span>WEST Score</span>
+                <div class="score-box"></div>
+            </div>
+            <div class="score-entry"><span>NORTH Score</span>
+                <div class="score-box"></div>
+            </div>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>I AM... ↓</th>
+                <th class="pay-col">...paying EAST</th>
+                <th class="pay-col">...paying SOUTH</th>
+                <th class="pay-col">...paying WEST</th>
+                <th class="pay-col">...paying NORTH</th>
+                <th class="net-col">NET RESULT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>EAST</td>
+                <td class="diagonal">X</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="net-col"></td>
+            </tr>
+            <tr>
+                <td>SOUTH</td>
+                <td></td>
+                <td class="diagonal">X</td>
+                <td></td>
+                <td></td>
+                <td class="net-col"></td>
+            </tr>
+            <tr>
+                <td>WEST</td>
+                <td></td>
+                <td></td>
+                <td class="diagonal">X</td>
+                <td></td>
+                <td class="net-col"></td>
+            </tr>
+            <tr>
+                <td>NORTH</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="diagonal">X</td>
+                <td class="net-col"></td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="rules-footer">
+            <div class="rules-column">
+                <strong>Standard Rules</strong>
+                • The winner never pays.<br>
+                • East pays (loses) and receives (wins) double.<br>
+                • Non-Winners: Subtract scores. Negative result = 0.
+            </div>
+            <div class="rules-column">
+                <strong>House Payout Rules</strong>
+                • The winner never pays.<br>
+                • Flat payout, no east doubling.<br>
+                • Flat payout, no east doubling, discarder pays double.
+            </div>
+        </div>
+    </div>
+    <div class="cut-line"></div><!-- BOTTOM SHEET -->
+    <div class="half-sheet bottom-half">
+        <div class="header">
+            <div class="title-grid-table">
+                <div class="title-icon">🀄</div>
+                <div class="title-line1">Chinese Classical Mahjong</div>
+                <div class="title-line2">Scoring Grid</div>
+            </div>
+            <div class="meta-inputs">
+                <div class="meta-item">Round Wind:
+                    <div class="meta-box"></div>
+                </div>
+                <div class="meta-item">Winner Seat:
+                    <div class="meta-box"></div>
+                </div>
+            </div>
+        </div>
+        <div class="scores-container">
+            <div class="score-entry"><span>EAST Score</span>
+                <div class="score-box"></div>
+            </div>
+            <div class="score-entry"><span>SOUTH Score</span>
+                <div class="score-box"></div>
+            </div>
+            <div class="score-entry"><span>WEST Score</span>
+                <div class="score-box"></div>
+            </div>
+            <div class="score-entry"><span>NORTH Score</span>
+                <div class="score-box"></div>
+            </div>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>I AM... ↓</th>
+                <th class="pay-col">...paying EAST</th>
+                <th class="pay-col">...paying SOUTH</th>
+                <th class="pay-col">...paying WEST</th>
+                <th class="pay-col">...paying NORTH</th>
+                <th class="net-col">NET RESULT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>EAST</td>
+                <td class="diagonal">X</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="net-col"></td>
+            </tr>
+            <tr>
+                <td>SOUTH</td>
+                <td></td>
+                <td class="diagonal">X</td>
+                <td></td>
+                <td></td>
+                <td class="net-col"></td>
+            </tr>
+            <tr>
+                <td>WEST</td>
+                <td></td>
+                <td></td>
+                <td class="diagonal">X</td>
+                <td></td>
+                <td class="net-col"></td>
+            </tr>
+            <tr>
+                <td>NORTH</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="diagonal">X</td>
+                <td class="net-col"></td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="rules-footer">
+            <div class="rules-column">
+                <strong>Standard Rules</strong>
+                • The winner never pays.<br>
+                • East pays (loses) and receives (wins) double.<br>
+                • Non-Winners: Subtract scores. Negative result = 0.
+            </div>
+            <div class="rules-column">
+                <strong>House Payout Rules</strong>
+                • The winner never pays.<br>
+                • Flat payout, no east doubling.<br>
+                • Flat payout, no east doubling, discarder pays double.
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

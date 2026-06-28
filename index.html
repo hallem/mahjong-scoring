@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mah Jongg Reference Library</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --card: #ffffff;
+      --ink: #2a2218;
+      --muted: #7a6f5d;
+      --accent: #8a1f1f;
+      --border: #e3dac9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    h1 { font-size: 2rem; margin: 0 0 .35rem; }
+    .subtitle { color: var(--muted); margin: 0; }
+    section { margin-bottom: 2.5rem; }
+    h2 {
+      font-size: 1.15rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--accent);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: .4rem;
+      margin: 0 0 1rem;
+    }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+    a.item {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .9rem 1.1rem;
+      text-decoration: none;
+      color: var(--ink);
+      transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    a.item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0,0,0,.08);
+      border-color: var(--accent);
+    }
+    .tag {
+      flex: none;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      padding: .2rem .5rem;
+      border-radius: 5px;
+      background: var(--accent);
+      color: #fff;
+    }
+    .tag.pdf { background: #b5451b; }
+    .label { font-weight: 600; }
+    .desc { color: var(--muted); font-weight: 400; font-size: .9rem; }
+    footer { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 2rem; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Mah Jongg Reference Library</h1>
+      <p class="subtitle">Scoring worksheets &amp; reference compendiums</p>
+    </header>
+
+    <section>
+      <h2>Web Pages (HTML)</h2>
+      <ul>
+        <li><a class="item" href="chinese_classical_scoring_worksheet_dynamic.html">
+          <span class="tag">HTML</span>
+          <span><span class="label">Chinese Classical Scoring Worksheet</span> &mdash; <span class="desc">interactive / dynamic</span></span>
+        </a></li>
+        <li><a class="item" href="chinese_classical_scoring_worksheet.html">
+          <span class="tag">HTML</span>
+          <span><span class="label">Chinese Classical Scoring Worksheet</span> &mdash; <span class="desc">static</span></span>
+        </a></li>
+        <li><a class="item" href="mahjong_reference_compendium_6.html">
+          <span class="tag">HTML</span>
+          <span><span class="label">Mah Jongg Reference Compendium</span> &mdash; <span class="desc">v6</span></span>
+        </a></li>
+        <li><a class="item" href="mahjong_reference_compendium_5.html">
+          <span class="tag">HTML</span>
+          <span><span class="label">Mah Jongg Reference Compendium</span> &mdash; <span class="desc">v5</span></span>
+        </a></li>
+        <li><a class="item" href="NMJL_1959_Card.html">
+          <span class="tag">HTML</span>
+          <span><span class="label">NMJL 1959 Card</span></span>
+        </a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Printable Documents (PDF)</h2>
+      <ul>
+        <li><a class="item" href="chinese_classical_scoring_worksheet.pdf">
+          <span class="tag pdf">PDF</span>
+          <span><span class="label">Chinese Classical Scoring Worksheet</span></span>
+        </a></li>
+        <li><a class="item" href="mahjong_reference_compendium_6a.pdf">
+          <span class="tag pdf">PDF</span>
+          <span><span class="label">Mah Jongg Reference Compendium</span> &mdash; <span class="desc">v6a</span></span>
+        </a></li>
+        <li><a class="item" href="mahjong_reference_compendium_6.pdf">
+          <span class="tag pdf">PDF</span>
+          <span><span class="label">Mah Jongg Reference Compendium</span> &mdash; <span class="desc">v6</span></span>
+        </a></li>
+        <li><a class="item" href="mahjong_reference_compendium_5.pdf">
+          <span class="tag pdf">PDF</span>
+          <span><span class="label">Mah Jongg Reference Compendium</span> &mdash; <span class="desc">v5</span></span>
+        </a></li>
+      </ul>
+    </section>
+
+    <footer>
+      <p><a href="https://github.com/hallem/mahjong-scoring">hallem/mahjong-scoring</a></p>
+    </footer>
+  </div>
+</body>
+</html>
