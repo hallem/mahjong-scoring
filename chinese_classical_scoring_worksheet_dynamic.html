@@ -2,74 +2,73 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dynamic Mahjong Scorer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chinese Classical Mahjong Scorer</title>
     <style>
     *, *:before, *:after {
         box-sizing: border-box;
     }
 
     body {
-        font-family: 'Segoe UI', Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: 12px;
         color: #222;
         background-color: #f0f2f5;
+        -webkit-text-size-adjust: 100%;
     }
 
-    /* Fluid container that automatically wraps the content */
+    /* Fluid container */
     .app-container {
         max-width: 800px;
         margin: 0 auto;
         background: #fff;
-        padding: 24px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     }
 
     .header {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
+        flex-direction: column;
         border-bottom: 2px solid #b32424;
-        padding-bottom: 12px;
+        padding-bottom: 16px;
         margin-bottom: 16px;
     }
 
     .title-grid-table {
-        display: grid;
-        grid-template-columns: auto 1fr;
+        display: flex;
         align-items: center;
+        margin-bottom: 16px;
     }
 
     .title-icon {
-        font-size: 24pt;
+        font-size: 28px;
         padding-right: 10px;
         line-height: 1;
-        display: flex;
-        align-items: center;
     }
 
     .title-line1 {
-        font-size: 14pt;
+        font-size: 18px;
         color: #b32424;
         text-transform: uppercase;
-        letter-spacing: 0.3px;
-        font-weight: bold;
+        letter-spacing: 0.5px;
+        font-weight: 800;
         line-height: 1.2;
     }
 
     .meta-inputs {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px 24px;
-        font-size: 9pt;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        font-size: 14px;
         font-weight: bold;
     }
 
     .meta-group {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 12px;
     }
 
     .meta-item {
@@ -82,83 +81,112 @@
     .meta-checkbox-label {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 10px;
         cursor: pointer;
         user-select: none;
+        padding: 4px 0;
+    }
+    
+    /* Enlarge checkboxes for mobile touch */
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #b32424;
     }
 
+    /* 44px min-height for iOS touch targets */
     .meta-select {
-        border: 1px solid #666;
-        width: 110px;
-        height: 28px;
+        border: 1px solid #ccc;
+        width: 140px;
+        height: 44px;
         background: #fcfcfc;
         font-weight: bold;
         text-align: center;
-        font-size: 9pt;
-        border-radius: 4px;
+        font-size: 16px; /* 16px prevents iOS auto-zoom */
+        border-radius: 8px;
+        color: #222;
     }
 
     .hidden-element {
-        visibility: hidden;
+        display: none !important;
     }
 
     .scores-container {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         background: #f9f9f9;
-        padding: 8px 12px;
+        padding: 12px;
         border: 1px solid #ddd;
-        border-radius: 4px;
+        border-radius: 8px;
     }
 
     .score-entry {
         text-align: center;
-        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     .score-entry span {
         display: block;
-        font-size: 8.5pt;
+        font-size: 12px;
         font-weight: bold;
-        color: #444;
-        margin-bottom: 4px;
+        color: #555;
+        margin-bottom: 6px;
+        text-transform: uppercase;
     }
 
     .score-input {
-        border: 1px solid #666;
+        border: 1px solid #ccc;
         width: 100%;
-        max-width: 100px;
-        height: 36px;
+        max-width: 120px;
+        height: 44px;
         text-align: center;
-        font-size: 12pt;
+        font-size: 18px; /* 16px+ prevents iOS auto-zoom */
         font-weight: bold;
-        border-radius: 4px;
+        border-radius: 8px;
+        color: #222;
+        background: #fff;
+    }
+
+    /* Table responsive wrapper */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
     }
 
     table {
         width: 100%;
+        min-width: 360px; /* Ensures it doesn't crush too small on tiny phones */
         border-collapse: collapse;
-        margin-bottom: 16px;
-        font-size: 9.5pt;
+        font-size: 13px;
     }
 
     th, td {
-        border: 1px solid #444;
+        border: 1px solid #ddd;
         text-align: center;
-        padding: 12px 6px;
+        padding: 12px 4px;
     }
 
     th {
         background-color: #f2f2f2;
         font-weight: bold;
+        color: #444;
+        font-size: 11px;
+        text-transform: uppercase;
     }
 
     td:first-child {
         background-color: #f2f2f2;
         font-weight: bold;
         width: 14%;
+        color: #444;
     }
 
     .pay-col { width: 17%; }
@@ -173,61 +201,75 @@
     th.net-col {
         background-color: #b32424 !important;
         color: #fff;
+        border-left: none;
     }
 
     .diagonal {
-        background-color: #ddd !important;
-        color: #777;
+        background-color: #eaeaea !important;
+        color: #999;
     }
 
     .pos-val { color: #2e7d32; font-weight: bold; }
     .neg-val { color: #c62828; font-weight: bold; }
-    .zero-val { color: #757575; }
+    .zero-val { color: #888; }
 
     .rules-footer {
-        font-size: 8.5pt;
-        line-height: 1.4;
-        color: #333;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #444;
         background: #f7f7f7;
-        padding: 10px 12px;
+        padding: 16px;
         border-left: 4px solid #b32424;
         display: flex;
-        justify-content: space-between;
-        border-radius: 0 4px 4px 0;
+        flex-direction: column;
+        gap: 16px;
+        border-radius: 0 8px 8px 0;
     }
 
-    .rules-column { flex: 1; }
     .rules-column:first-child {
-        border-right: 1px dashed #ccc;
-        padding-right: 15px;
-        margin-right: 15px;
+        border-bottom: 1px dashed #ccc;
+        padding-bottom: 16px;
     }
 
     .rules-footer strong {
         color: #b32424;
         text-transform: uppercase;
-        font-size: 9.5pt;
+        font-size: 12px;
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
     }
 
     .action-bar {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
     }
 
     .btn {
         background: #b32424;
         color: #fff;
         border: none;
-        padding: 8px 18px;
+        padding: 0 24px;
+        height: 44px;
         font-weight: bold;
-        border-radius: 4px;
+        border-radius: 8px;
         cursor: pointer;
-        font-size: 9.5pt;
+        font-size: 15px;
+        box-shadow: 0 2px 4px rgba(179, 36, 36, 0.3);
     }
-    .btn:hover { background: #911d1d; }
+    .btn:active { background: #911d1d; transform: translateY(1px); }
+
+    /* Desktop overrides */
+    @media (min-width: 650px) {
+        .meta-inputs { grid-template-columns: 1fr 1fr; gap: 24px; }
+        .scores-container { display: flex; }
+        .score-entry { flex: 1; }
+        .rules-footer { flex-direction: row; gap: 24px; }
+        .rules-column:first-child { border-bottom: none; border-right: 1px dashed #ccc; padding-bottom: 0; padding-right: 24px; }
+        .header { flex-direction: row; align-items: flex-start; }
+        .title-grid-table { margin-bottom: 0; }
+    }
     </style>
 </head>
 <body>
@@ -240,7 +282,7 @@
     <div class="header">
         <div class="title-grid-table">
             <div class="title-icon">🀄</div>
-            <div class="title-line1">Chinese Classical Scorer</div>
+            <div class="title-line1">Chinese Classical<br>Scorer</div>
         </div>
         
         <div class="meta-inputs">
@@ -290,65 +332,67 @@
     
     <div class="scores-container">
         <div class="score-entry"><span>EAST Score</span>
-            <input type="number" class="score-input" id="score-EAST" value="0" min="0" oninput="calculateScores()">
+            <input type="number" class="score-input" id="score-EAST" value="0" min="0" oninput="calculateScores()" onfocus="this.select()">
         </div>
         <div class="score-entry"><span>SOUTH Score</span>
-            <input type="number" class="score-input" id="score-SOUTH" value="0" min="0" oninput="calculateScores()">
+            <input type="number" class="score-input" id="score-SOUTH" value="0" min="0" oninput="calculateScores()" onfocus="this.select()">
         </div>
         <div class="score-entry"><span>WEST Score</span>
-            <input type="number" class="score-input" id="score-WEST" value="0" min="0" oninput="calculateScores()">
+            <input type="number" class="score-input" id="score-WEST" value="0" min="0" oninput="calculateScores()" onfocus="this.select()">
         </div>
         <div class="score-entry"><span>NORTH Score</span>
-            <input type="number" class="score-input" id="score-NORTH" value="0" min="0" oninput="calculateScores()">
+            <input type="number" class="score-input" id="score-NORTH" value="0" min="0" oninput="calculateScores()" onfocus="this.select()">
         </div>
     </div>
     
-    <table>
-        <thead>
-        <tr>
-            <th>PLAYER ↓</th>
-            <th class="pay-col">vs. EAST</th>
-            <th class="pay-col">vs. SOUTH</th>
-            <th class="pay-col">vs. WEST</th>
-            <th class="pay-col">vs. NORTH</th>
-            <th class="net-col">NET RESULT</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr id="row-EAST">
-            <td>EAST</td>
-            <td class="diagonal">X</td>
-            <td id="cell-EAST-SOUTH">0</td>
-            <td id="cell-EAST-WEST">0</td>
-            <td id="cell-EAST-NORTH">0</td>
-            <td class="net-col" id="net-EAST">0</td>
-        </tr>
-        <tr id="row-SOUTH">
-            <td>SOUTH</td>
-            <td id="cell-SOUTH-EAST">0</td>
-            <td class="diagonal">X</td>
-            <td id="cell-SOUTH-WEST">0</td>
-            <td id="cell-SOUTH-NORTH">0</td>
-            <td class="net-col" id="net-SOUTH">0</td>
-        </tr>
-        <tr id="row-WEST">
-            <td>WEST</td>
-            <td id="cell-WEST-EAST">0</td>
-            <td id="cell-WEST-SOUTH">0</td>
-            <td class="diagonal">X</td>
-            <td id="cell-WEST-NORTH">0</td>
-            <td class="net-col" id="net-WEST">0</td>
-        </tr>
-        <tr id="row-NORTH">
-            <td>NORTH</td>
-            <td id="cell-NORTH-EAST">0</td>
-            <td id="cell-NORTH-SOUTH">0</td>
-            <td id="cell-NORTH-WEST">0</td>
-            <td class="diagonal">X</td>
-            <td class="net-col" id="net-NORTH">0</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table>
+            <thead>
+            <tr>
+                <th>Plyr ↓</th>
+                <th class="pay-col">vs EAST</th>
+                <th class="pay-col">vs SOUTH</th>
+                <th class="pay-col">vs WEST</th>
+                <th class="pay-col">vs NORTH</th>
+                <th class="net-col">NET RESULT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr id="row-EAST">
+                <td>EAST</td>
+                <td class="diagonal">X</td>
+                <td id="cell-EAST-SOUTH">0</td>
+                <td id="cell-EAST-WEST">0</td>
+                <td id="cell-EAST-NORTH">0</td>
+                <td class="net-col" id="net-EAST">0</td>
+            </tr>
+            <tr id="row-SOUTH">
+                <td>SOUTH</td>
+                <td id="cell-SOUTH-EAST">0</td>
+                <td class="diagonal">X</td>
+                <td id="cell-SOUTH-WEST">0</td>
+                <td id="cell-SOUTH-NORTH">0</td>
+                <td class="net-col" id="net-SOUTH">0</td>
+            </tr>
+            <tr id="row-WEST">
+                <td>WEST</td>
+                <td id="cell-WEST-EAST">0</td>
+                <td id="cell-WEST-SOUTH">0</td>
+                <td class="diagonal">X</td>
+                <td id="cell-WEST-NORTH">0</td>
+                <td class="net-col" id="net-WEST">0</td>
+            </tr>
+            <tr id="row-NORTH">
+                <td>NORTH</td>
+                <td id="cell-NORTH-EAST">0</td>
+                <td id="cell-NORTH-SOUTH">0</td>
+                <td id="cell-NORTH-WEST">0</td>
+                <td class="diagonal">X</td>
+                <td class="net-col" id="net-NORTH">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
     
     <div class="rules-footer">
         <div class="rules-column">
@@ -525,6 +569,7 @@ function resetForm() {
     
     updateDiscarderDropdown();
     calculateScores();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 window.onload = function() {
