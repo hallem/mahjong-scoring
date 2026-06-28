@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Mahjong Scorer</title>
+    <style>
+    *, *:before, *:after {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        color: #222;
+        background-color: #f0f2f5;
+    }
+
+    /* Fluid container that automatically wraps the content */
+    .app-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2px solid #b32424;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+    }
+
+    .title-grid-table {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+    }
+
+    .title-icon {
+        font-size: 24pt;
+        padding-right: 10px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    .title-line1 {
+        font-size: 14pt;
+        color: #b32424;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: bold;
+        line-height: 1.2;
+    }
+
+    .meta-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 24px;
+        font-size: 9pt;
+        font-weight: bold;
+    }
+
+    .meta-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .meta-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .meta-select {
+        border: 1px solid #666;
+        width: 110px;
+        height: 28px;
+        background: #fcfcfc;
+        font-weight: bold;
+        text-align: center;
+        font-size: 9pt;
+        border-radius: 4px;
+    }
+
+    .hidden-element {
+        visibility: hidden;
+    }
+
+    .scores-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        background: #f9f9f9;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .score-entry {
+        text-align: center;
+        flex: 1;
+    }
+
+    .score-entry span {
+        display: block;
+        font-size: 8.5pt;
+        font-weight: bold;
+        color: #444;
+        margin-bottom: 4px;
+    }
+
+    .score-input {
+        border: 1px solid #666;
+        width: 100%;
+        max-width: 100px;
+        height: 36px;
+        text-align: center;
+        font-size: 12pt;
+        font-weight: bold;
+        border-radius: 4px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+        font-size: 9.5pt;
+    }
+
+    th, td {
+        border: 1px solid #444;
+        text-align: center;
+        padding: 12px 6px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+
+    td:first-child {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        width: 14%;
+    }
+
+    .pay-col { width: 17%; }
+
+    .net-col {
+        background-color: #fdf2f2;
+        font-weight: bold;
+        width: 18%;
+        border-left: 2px solid #b32424;
+    }
+
+    th.net-col {
+        background-color: #b32424 !important;
+        color: #fff;
+    }
+
+    .diagonal {
+        background-color: #ddd !important;
+        color: #777;
+    }
+
+    .pos-val { color: #2e7d32; font-weight: bold; }
+    .neg-val { color: #c62828; font-weight: bold; }
+    .zero-val { color: #757575; }
+
+    .rules-footer {
+        font-size: 8.5pt;
+        line-height: 1.4;
+        color: #333;
+        background: #f7f7f7;
+        padding: 10px 12px;
+        border-left: 4px solid #b32424;
+        display: flex;
+        justify-content: space-between;
+        border-radius: 0 4px 4px 0;
+    }
+
+    .rules-column { flex: 1; }
+    .rules-column:first-child {
+        border-right: 1px dashed #ccc;
+        padding-right: 15px;
+        margin-right: 15px;
+    }
+
+    .rules-footer strong {
+        color: #b32424;
+        text-transform: uppercase;
+        font-size: 9.5pt;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .action-bar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+    }
+
+    .btn {
+        background: #b32424;
+        color: #fff;
+        border: none;
+        padding: 8px 18px;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 9.5pt;
+    }
+    .btn:hover { background: #911d1d; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="action-bar">
+        <button class="btn" onclick="resetForm()">Clear Scores</button>
+    </div>
+
+    <div class="header">
+        <div class="title-grid-table">
+            <div class="title-icon">🀄</div>
+            <div class="title-line1">Chinese Classical Scorer</div>
+        </div>
+        
+        <div class="meta-inputs">
+            <!-- Selectors -->
+            <div class="meta-group">
+                <div class="meta-item">Round Wind:
+                    <select class="meta-select" id="round-wind" onchange="calculateScores()">
+                        <option value="EAST">East</option>
+                        <option value="SOUTH">South</option>
+                        <option value="WEST">West</option>
+                        <option value="NORTH">North</option>
+                    </select>
+                </div>
+                <div class="meta-item">Winner Seat:
+                    <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
+                        <option value="NONE">-- No Win --</option>
+                        <option value="EAST">East</option>
+                        <option value="SOUTH">South</option>
+                        <option value="WEST">West</option>
+                        <option value="NORTH">North</option>
+                    </select>
+                </div>
+                <div class="meta-item hidden-element" id="discarder-container">Who Discarded:
+                    <select class="meta-select" id="discarder-seat" onchange="calculateScores()">
+                        <!-- Dynamic Options loaded by JS -->
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Rules Customizers -->
+            <div class="meta-group">
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores()">
+                    Enable East Doubling
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="handleRuleChange()">
+                    Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-self-draw" checked onchange="handleSelfDrawToggle()">
+                    Self-Draw Win (Tsumo)
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="scores-container">
+        <div class="score-entry"><span>EAST Score</span>
+            <input type="number" class="score-input" id="score-EAST" value="0" min="0" oninput="calculateScores()">
+        </div>
+        <div class="score-entry"><span>SOUTH Score</span>
+            <input type="number" class="score-input" id="score-SOUTH" value="0" min="0" oninput="calculateScores()">
+        </div>
+        <div class="score-entry"><span>WEST Score</span>
+            <input type="number" class="score-input" id="score-WEST" value="0" min="0" oninput="calculateScores()">
+        </div>
+        <div class="score-entry"><span>NORTH Score</span>
+            <input type="number" class="score-input" id="score-NORTH" value="0" min="0" oninput="calculateScores()">
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+        <tr>
+            <th>PLAYER ↓</th>
+            <th class="pay-col">vs. EAST</th>
+            <th class="pay-col">vs. SOUTH</th>
+            <th class="pay-col">vs. WEST</th>
+            <th class="pay-col">vs. NORTH</th>
+            <th class="net-col">NET RESULT</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr id="row-EAST">
+            <td>EAST</td>
+            <td class="diagonal">X</td>
+            <td id="cell-EAST-SOUTH">0</td>
+            <td id="cell-EAST-WEST">0</td>
+            <td id="cell-EAST-NORTH">0</td>
+            <td class="net-col" id="net-EAST">0</td>
+        </tr>
+        <tr id="row-SOUTH">
+            <td>SOUTH</td>
+            <td id="cell-SOUTH-EAST">0</td>
+            <td class="diagonal">X</td>
+            <td id="cell-SOUTH-WEST">0</td>
+            <td id="cell-SOUTH-NORTH">0</td>
+            <td class="net-col" id="net-SOUTH">0</td>
+        </tr>
+        <tr id="row-WEST">
+            <td>WEST</td>
+            <td id="cell-WEST-EAST">0</td>
+            <td id="cell-WEST-SOUTH">0</td>
+            <td class="diagonal">X</td>
+            <td id="cell-WEST-NORTH">0</td>
+            <td class="net-col" id="net-WEST">0</td>
+        </tr>
+        <tr id="row-NORTH">
+            <td>NORTH</td>
+            <td id="cell-NORTH-EAST">0</td>
+            <td id="cell-NORTH-SOUTH">0</td>
+            <td id="cell-NORTH-WEST">0</td>
+            <td class="diagonal">X</td>
+            <td class="net-col" id="net-NORTH">0</td>
+        </tr>
+        </tbody>
+    </table>
+    
+    <div class="rules-footer">
+        <div class="rules-column">
+            <strong>Rules Matrix State</strong>
+            • Winner never loses points.<br>
+            • If East Doubling is off, East rules treat all seats evenly.<br>
+            • Non-winners settle point variances pairwise.
+        </div>
+        <div class="rules-column">
+            <strong>Payout Adjustments</strong>
+            • Self-Draw (Tsumo): Everyone pays base score to winner.<br>
+            • Discarder Pays Double variant: Discarder handles full winner burden (or penalty double) while other non-winners owe winner 0.
+        </div>
+    </div>
+</div>
+
+<script>
+const seats = ['EAST', 'SOUTH', 'WEST', 'NORTH'];
+
+function handleWinnerChange() {
+    updateDiscarderDropdown();
+    calculateScores();
+}
+
+function handleSelfDrawToggle() {
+    updateDiscarderDropdown();
+    calculateScores();
+}
+
+function handleRuleChange() {
+    updateDiscarderDropdown();
+    calculateScores();
+}
+
+function updateDiscarderDropdown() {
+    const winner = document.getElementById('winner-seat').value;
+    const isSelfDraw = document.getElementById('rule-self-draw').checked;
+    const container = document.getElementById('discarder-container');
+    const select = document.getElementById('discarder-seat');
+    
+    if (winner !== 'NONE' && !isSelfDraw) {
+        container.classList.remove('hidden-element');
+        
+        const currentSelection = select.value;
+        select.innerHTML = '';
+        
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase();
+                if (seat === currentSelection) opt.selected = true;
+                select.appendChild(opt);
+            }
+        });
+    } else {
+        container.classList.add('hidden-element');
+        select.innerHTML = '';
+    }
+}
+
+function calculateScores() {
+    const winner = document.getElementById('winner-seat').value;
+    const isSelfDraw = document.getElementById('rule-self-draw').checked;
+    const discarder = document.getElementById('discarder-seat').value;
+    
+    const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
+    const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
+
+    const baseScores = {};
+    seats.forEach(seat => {
+        baseScores[seat] = parseInt(document.getElementById(`score-${seat}`).value) || 0;
+    });
+
+    const matrix = {
+        EAST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        SOUTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        WEST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        NORTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 }
+    };
+
+    seats.forEach(p1 => {
+        seats.forEach(p2 => {
+            if (p1 === p2) return; 
+            if (p1 === winner) return; 
+
+            // Scenario A: P2 is the Winner
+            if (p2 === winner) {
+                let baseWinValue = baseScores[winner];
+                
+                if (isSelfDraw) {
+                    let payout = baseWinValue;
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        payout *= 2;
+                    }
+                    matrix[p1][p2] = -payout;
+                    matrix[p2][p1] = payout;
+                } else {
+                    if (discarderPaysDoubleEnabled) {
+                        if (p1 === discarder) {
+                            let payout = baseWinValue * 2;
+                            if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                                payout *= 2; 
+                            }
+                            matrix[p1][p2] = -payout;
+                            matrix[p2][p1] = payout;
+                        } else {
+                            matrix[p1][p2] = 0;
+                        }
+                    } else {
+                        let payout = baseWinValue;
+                        if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                            payout *= 2;
+                        }
+                        matrix[p1][p2] = -payout;
+                        matrix[p2][p1] = payout;
+                    }
+                }
+            } 
+            
+            // Scenario B: Both are Non-Winners
+            else if (p2 !== winner) {
+                if (baseScores[p1] > baseScores[p2]) {
+                    let diff = baseScores[p1] - baseScores[p2];
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        diff *= 2;
+                    }
+                    matrix[p1][p2] = diff;
+                    matrix[p2][p1] = -diff;
+                }
+            }
+        });
+    });
+
+    // Render Matrix values
+    seats.forEach(p1 => {
+        let netResult = 0;
+        seats.forEach(p2 => {
+            if (p1 === p2) return;
+            
+            const cellValue = matrix[p1][p2];
+            netResult += cellValue;
+            
+            const cellElement = document.getElementById(`cell-${p1}-${p2}`);
+            if (cellElement) {
+                cellElement.innerText = cellValue > 0 ? `+${cellValue}` : cellValue;
+                
+                cellElement.className = '';
+                if (cellValue > 0) cellElement.classList.add('pos-val');
+                else if (cellValue < 0) cellElement.classList.add('neg-val');
+                else cellElement.classList.add('zero-val');
+            }
+        });
+
+        const netElement = document.getElementById(`net-${p1}`);
+        if (netElement) {
+            netElement.innerText = netResult > 0 ? `+${netResult}` : netResult;
+            netElement.className = 'net-col';
+            if (netResult > 0) netElement.classList.add('pos-val');
+            else if (netResult < 0) netElement.classList.add('neg-val');
+        }
+    });
+}
+
+function resetForm() {
+    document.getElementById('winner-seat').value = 'NONE';
+    document.getElementById('rule-self-draw').checked = true;
+    document.getElementById('rule-discarder-pays-double').checked = false;
+    document.getElementById('rule-east-doubling').checked = true;
+    
+    seats.forEach(seat => {
+        document.getElementById(`score-${seat}`).value = 0;
+    });
+    
+    updateDiscarderDropdown();
+    calculateScores();
+}
+
+window.onload = function() {
+    updateDiscarderDropdown();
+    calculateScores();
+};
+</script>
+
+</body>
+</html>
