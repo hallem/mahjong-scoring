@@ -92,7 +92,7 @@
         user-select: none;
         padding: 4px 0;
     }
-    
+
     /* Enlarge checkboxes for mobile touch */
     input[type="checkbox"] {
         width: 20px;
@@ -119,7 +119,7 @@
         display: none !important;
     }
 
-    /* Per-seat scoring groups (mini points + doubles + limit hand) */
+    /* Per-seat scoring groups */
     .scores-container {
         display: grid;
         grid-template-columns: 1fr;   /* phones: one card per row */
@@ -160,32 +160,6 @@
         gap: 10px;
     }
 
-    .fields-row { display: flex; gap: 10px; }
-    .fields-row .seat-field { flex: 1; }
-
-    .seat-field { display: flex; flex-direction: column; gap: 4px; }
-    .seat-field label {
-        font-size: 11px;
-        font-weight: bold;
-        text-transform: uppercase;
-        color: #555;
-        letter-spacing: 0.3px;
-    }
-
-    .num-input, .num-select {
-        height: 44px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        background: #fff;
-        font-size: 16px; /* 16px+ prevents iOS auto-zoom */
-        font-weight: bold;
-        color: #222;
-        padding: 0 10px;
-        width: 100%;
-    }
-    .num-input { text-align: center; }
-    .num-select:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
-
     .seat-total {
         display: flex;
         justify-content: space-between;
@@ -203,6 +177,154 @@
     .seat-total strong { font-size: 20px; color: #222; }
     .seat-total strong.capped { color: #b32424; }
 
+    /* Hand selection picker */
+    .hs-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 12px;
+        font-weight: 800;
+        color: #b32424;
+        cursor: pointer;
+        user-select: none;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        border-bottom: 1px solid #ddd;
+    }
+    .hs-toggle::after {
+        content: '▸';
+        font-size: 11px;
+        transition: transform 0.2s;
+    }
+    .hs-toggle.open::after {
+        transform: rotate(90deg);
+    }
+    .hs-content {
+        display: none;
+        padding-top: 8px;
+    }
+    .hs-content.open {
+        display: block;
+    }
+
+    .hand-section {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+    .hand-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #555;
+        background: #f2f2f2;
+        cursor: pointer;
+        user-select: none;
+        letter-spacing: 0.3px;
+    }
+    .hand-section-head::after {
+        content: '▸';
+        font-size: 10px;
+        color: #999;
+        transition: transform 0.2s;
+    }
+    .hand-section-head.open::after {
+        transform: rotate(90deg);
+    }
+    .hand-section-body {
+        display: none;
+    }
+    .hand-section-body.open {
+        display: block;
+    }
+
+    .hand-row {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        font-size: 13px;
+        border-top: 1px solid #eee;
+    }
+    .hand-name {
+        flex: 1;
+        min-width: 0;
+    }
+    .hand-val {
+        color: #999;
+        font-size: 11px;
+        margin-right: 8px;
+        white-space: nowrap;
+    }
+
+    .qty-ctrl {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .qty-btn {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f8f8;
+        border: none;
+        font-size: 16px;
+        font-weight: bold;
+        color: #555;
+        cursor: pointer;
+        padding: 0;
+    }
+    .qty-btn:active { background: #ddd; }
+    .qty-num {
+        width: 26px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: bold;
+        color: #222;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        line-height: 30px;
+    }
+    .qty-num.has-val { color: #b32424; }
+
+    .summary-row {
+        display: flex;
+        gap: 10px;
+    }
+    .summary-box { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .summary-box label {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #555;
+        letter-spacing: 0.3px;
+    }
+    .summary-val {
+        height: 40px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #f8f8f8;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #222;
+    }
+
+    .winner-only-section { display: none; }
+    .seat-scorer.is-winner .winner-only-section { display: block; }
+
     /* Table responsive wrapper */
     .table-responsive {
         width: 100%;
@@ -215,7 +337,7 @@
 
     table {
         width: 100%;
-        min-width: 360px; /* Ensures it doesn't crush too small on tiny phones */
+        min-width: 360px;
         border-collapse: collapse;
         font-size: 13px;
     }
@@ -296,9 +418,9 @@
 
         table { display: block; min-width: 0; border: none; font-size: 15px; }
         thead { display: none; }
-        
-        tbody { 
-            display: block; 
+
+        tbody {
+            display: block;
             background: #fff;
             border: 1px solid #ddd;
             border-radius: 10px;
@@ -330,7 +452,6 @@
             border-bottom: none;
         }
 
-        /* Player name on the left */
         td.player-name {
             display: block;
             width: auto;
@@ -344,7 +465,6 @@
         }
         td.player-name::before { content: none; }
 
-        /* General td styling overridden for the two visible cells */
         td {
             display: block;
             width: auto;
@@ -355,12 +475,10 @@
         }
         td::before { content: none; }
 
-        /* Hide individual pairwise transactions to show only the net result */
         td:not(.player-name):not(.net-col) {
             display: none;
         }
 
-        /* Net result on the right */
         td.net-col {
             display: block;
             width: auto;
@@ -393,9 +511,8 @@
             <div class="title-icon">🀄</div>
             <div class="title-line1">Chinese Classical</div>
         </div>
-        
+
         <div class="meta-inputs">
-            <!-- Selectors -->
             <div class="meta-group">
                 <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
                     <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
@@ -408,12 +525,10 @@
                 </div>
                 <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
                     <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); calculateScores()" disabled>
-                        <!-- Populated by JS: Self-Drawn + each possible discarder -->
                     </select>
                 </div>
             </div>
 
-            <!-- Rules Customizers -->
             <div class="meta-group">
                 <label class="meta-checkbox-label">
                     <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores()">
@@ -430,125 +545,8 @@
             </div>
         </div>
     </div>
-    
-    <div class="scores-container">
-        <!-- One scoring group per seat. Enter Points + Doubles, or pick a Limit Hand
-             (winner only). Point Total is computed per Chinese Classical rules. -->
-        <div class="seat-scorer" id="scorer-EAST">
-            <div class="seat-scorer-head"><span>EAST</span><span class="seat-tag" id="tag-EAST"></span></div>
-            <div class="seat-body">
-                <div class="fields-row">
-                    <div class="seat-field">
-                        <label for="mini-EAST">Mini Points</label>
-                        <input type="number" class="num-input" id="mini-EAST" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                    <div class="seat-field">
-                        <label for="doubles-EAST">Doubles</label>
-                        <input type="number" class="num-input" id="doubles-EAST" value="0" min="0" max="10" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                </div>
-                <div class="seat-field">
-                    <label for="limit-EAST">Limit Hand</label>
-                    <select class="num-select" id="limit-EAST" onchange="calculateScores()" disabled>
-                        <option value="0">None</option>
-                        <option value="150">Blessing of Earth (150)</option>
-                        <option value="300">Blessing of Heaven (300)</option>
-                        <option value="300">Three Big Dragons (300)</option>
-                        <option value="300">Thirteen Orphans (300)</option>
-                        <option value="300">Four Big Winds (300)</option>
-                        <option value="300">Nine Gates (300)</option>
-                    </select>
-                </div>
-                <div class="seat-total"><span>Point Total</span><strong id="total-EAST">0</strong></div>
-            </div>
-        </div>
 
-        <div class="seat-scorer" id="scorer-SOUTH">
-            <div class="seat-scorer-head"><span>SOUTH</span><span class="seat-tag" id="tag-SOUTH"></span></div>
-            <div class="seat-body">
-                <div class="fields-row">
-                    <div class="seat-field">
-                        <label for="mini-SOUTH">Mini Points</label>
-                        <input type="number" class="num-input" id="mini-SOUTH" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                    <div class="seat-field">
-                        <label for="doubles-SOUTH">Doubles</label>
-                        <input type="number" class="num-input" id="doubles-SOUTH" value="0" min="0" max="10" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                </div>
-                <div class="seat-field">
-                    <label for="limit-SOUTH">Limit Hand</label>
-                    <select class="num-select" id="limit-SOUTH" onchange="calculateScores()" disabled>
-                        <option value="0">None</option>
-                        <option value="150">Blessing of Earth (150)</option>
-                        <option value="300">Blessing of Heaven (300)</option>
-                        <option value="300">Three Big Dragons (300)</option>
-                        <option value="300">Thirteen Orphans (300)</option>
-                        <option value="300">Four Big Winds (300)</option>
-                        <option value="300">Nine Gates (300)</option>
-                    </select>
-                </div>
-                <div class="seat-total"><span>Point Total</span><strong id="total-SOUTH">0</strong></div>
-            </div>
-        </div>
-
-        <div class="seat-scorer" id="scorer-WEST">
-            <div class="seat-scorer-head"><span>WEST</span><span class="seat-tag" id="tag-WEST"></span></div>
-            <div class="seat-body">
-                <div class="fields-row">
-                    <div class="seat-field">
-                        <label for="mini-WEST">Mini Points</label>
-                        <input type="number" class="num-input" id="mini-WEST" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                    <div class="seat-field">
-                        <label for="doubles-WEST">Doubles</label>
-                        <input type="number" class="num-input" id="doubles-WEST" value="0" min="0" max="10" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                </div>
-                <div class="seat-field">
-                    <label for="limit-WEST">Limit Hand</label>
-                    <select class="num-select" id="limit-WEST" onchange="calculateScores()" disabled>
-                        <option value="0">None</option>
-                        <option value="150">Blessing of Earth (150)</option>
-                        <option value="300">Blessing of Heaven (300)</option>
-                        <option value="300">Three Big Dragons (300)</option>
-                        <option value="300">Thirteen Orphans (300)</option>
-                        <option value="300">Four Big Winds (300)</option>
-                        <option value="300">Nine Gates (300)</option>
-                    </select>
-                </div>
-                <div class="seat-total"><span>Point Total</span><strong id="total-WEST">0</strong></div>
-            </div>
-        </div>
-
-        <div class="seat-scorer" id="scorer-NORTH">
-            <div class="seat-scorer-head"><span>NORTH</span><span class="seat-tag" id="tag-NORTH"></span></div>
-            <div class="seat-body">
-                <div class="fields-row">
-                    <div class="seat-field">
-                        <label for="mini-NORTH">Mini Points</label>
-                        <input type="number" class="num-input" id="mini-NORTH" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                    <div class="seat-field">
-                        <label for="doubles-NORTH">Doubles</label>
-                        <input type="number" class="num-input" id="doubles-NORTH" value="0" min="0" max="10" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
-                    </div>
-                </div>
-                <div class="seat-field">
-                    <label for="limit-NORTH">Limit Hand</label>
-                    <select class="num-select" id="limit-NORTH" onchange="calculateScores()" disabled>
-                        <option value="0">None</option>
-                        <option value="150">Blessing of Earth (150)</option>
-                        <option value="300">Blessing of Heaven (300)</option>
-                        <option value="300">Three Big Dragons (300)</option>
-                        <option value="300">Thirteen Orphans (300)</option>
-                        <option value="300">Four Big Winds (300)</option>
-                        <option value="300">Nine Gates (300)</option>
-                    </select>
-                </div>
-                <div class="seat-total"><span>Point Total</span><strong id="total-NORTH">0</strong></div>
-            </div>
-        </div>
+    <div class="scores-container" id="scores-container">
     </div>
 
     <div class="table-responsive">
@@ -608,48 +606,225 @@
 <script>
 const seats = ['EAST', 'SOUTH', 'WEST', 'NORTH'];
 
-// --- Chinese Classical scoring ---------------------------------------------
-// Source: mahjong_reference_compendium_6.html, "Scoring Reference Sheet".
-//   Point Total = Points x 2^Doubles               (5a)
-//   Point Total = Limit Points + Points             (5b, limit hands)
-//   Point Limit cap: 1000 for East, 500 for others (6)
-// All hand points (base win, bonuses, etc.) are tallied by hand into the Points box.
+const HAND_SECTIONS = [
+    {
+        id: 'limit',
+        label: 'Limit Hands',
+        winnerOnly: true,
+        items: [
+            { name: 'Blessing of Earth',  type: 'limit', value: 150, max: 1 },
+            { name: 'Blessing of Heaven', type: 'limit', value: 300, max: 1 },
+            { name: 'Three Big Dragons',  type: 'limit', value: 300, max: 1 },
+            { name: 'Thirteen Orphans',   type: 'limit', value: 300, max: 1 },
+            { name: 'Four Big Winds',     type: 'limit', value: 300, max: 1 },
+            { name: 'Nine Gates',         type: 'limit', value: 300, max: 1 }
+        ]
+    },
+    {
+        id: 'doubles',
+        label: 'Doubles',
+        winnerOnly: false,
+        items: [
+            { name: 'Dragon Pung or Kong',       type: 'dbl', value: 1, max: 3 },
+            { name: 'Seat Wind Pung or Kong',     type: 'dbl', value: 1, max: 1 },
+            { name: 'Round Wind Pung or Kong',    type: 'dbl', value: 1, max: 1 },
+            { name: 'Seat Flower and Season',     type: 'dbl', value: 1, max: 2 },
+            { name: 'Half Flush',                 type: 'dbl', value: 1, max: 1 },
+            { name: 'Pure Flush',                 type: 'dbl', value: 3, max: 1 },
+            { name: 'All Honors',                 type: 'dbl', value: 3, max: 1 },
+            { name: 'All Four Flowers',           type: 'dbl', value: 3, max: 1 },
+            { name: 'All Four Seasons',           type: 'dbl', value: 3, max: 1 }
+        ]
+    },
+    {
+        id: 'mini',
+        label: 'Mini Points',
+        winnerOnly: false,
+        items: [
+            { name: 'Pung of Simples',              type: 'pts', value: 2,  max: 4 },
+            { name: 'Pung of Simples (c)',           type: 'pts', value: 4,  max: 4 },
+            { name: 'Kong of Simples',               type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Simples (c)',            type: 'pts', value: 16, max: 4 },
+            { name: 'Pung of Terminals',             type: 'pts', value: 4,  max: 4 },
+            { name: 'Pung of Terminals (c)',          type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Terminals',             type: 'pts', value: 16, max: 4 },
+            { name: 'Kong of Terminals (c)',          type: 'pts', value: 32, max: 4 },
+            { name: 'Pung of Dragons',               type: 'pts', value: 4,  max: 3 },
+            { name: 'Pung of Dragons (c)',            type: 'pts', value: 8,  max: 3 },
+            { name: 'Kong of Dragons',               type: 'pts', value: 16, max: 3 },
+            { name: 'Kong of Dragons (c)',            type: 'pts', value: 32, max: 3 },
+            { name: 'Pung of Seat/Round Winds',      type: 'pts', value: 4,  max: 2 },
+            { name: 'Pung of Seat/Round Winds (c)',   type: 'pts', value: 8,  max: 2 },
+            { name: 'Kong of Seat/Round Winds',      type: 'pts', value: 16, max: 2 },
+            { name: 'Kong of Seat/Round Winds (c)',   type: 'pts', value: 32, max: 2 },
+            { name: 'Pair of Seat/Round Winds',      type: 'pts', value: 2,  max: 2 },
+            { name: 'Pair of Dragons',               type: 'pts', value: 2,  max: 1 },
+            { name: 'Each Seat Flower or Season',    type: 'pts', value: 2,  max: 2 }
+        ]
+    },
+    {
+        id: 'mini-winner',
+        label: 'Mini Points — Winner Only',
+        winnerOnly: true,
+        items: [
+            { name: 'Base Win',              type: 'pts', value: 20, max: 1 },
+            { name: 'Pinghu',                type: 'pts', value: 10, max: 1 },
+            { name: 'All Pungs',             type: 'pts', value: 10, max: 1 },
+            { name: 'Replacement Tile Win',  type: 'pts', value: 10, max: 1 },
+            { name: 'Last Tile Win',         type: 'pts', value: 10, max: 1 },
+            { name: 'Self-Drawn Win',        type: 'pts', value: 2,  max: 1 },
+            { name: 'Eyes Wait',             type: 'pts', value: 2,  max: 1 },
+            { name: 'Closed Wait',           type: 'pts', value: 2,  max: 1 },
+            { name: 'Edge Wait',             type: 'pts', value: 2,  max: 1 }
+        ]
+    }
+];
 
-function intVal(id) {
-    return parseInt(document.getElementById(id).value) || 0;
+function buildSeatScorer(seat) {
+    let html = '';
+    html += `<div class="seat-scorer" id="scorer-${seat}">`;
+    html += `<div class="seat-scorer-head"><span>${seat}</span><span class="seat-tag" id="tag-${seat}"></span></div>`;
+    html += `<div class="seat-body">`;
+
+    html += `<div class="hs-toggle" onclick="toggleHS(this)">Hand Selection</div>`;
+    html += `<div class="hs-content">`;
+
+    HAND_SECTIONS.forEach((section, si) => {
+        const woClass = section.winnerOnly ? ' winner-only-section' : '';
+        html += `<div class="hand-section${woClass}">`;
+        html += `<div class="hand-section-head" onclick="toggleSection(this)">${section.label}</div>`;
+        html += `<div class="hand-section-body">`;
+
+        section.items.forEach((item, ii) => {
+            const dataId = `${seat}-${si}-${ii}`;
+            const valLabel = item.type === 'dbl'
+                ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                : `${item.value} pts`;
+            const suffix = item.max > 1 ? ' ea' : '';
+
+            html += `<div class="hand-row">`;
+            html += `<span class="hand-name">${item.name}</span>`;
+            html += `<span class="hand-val">${valLabel}${suffix}</span>`;
+            html += `<div class="qty-ctrl">`;
+            html += `<button class="qty-btn" onclick="adjQty('${dataId}',-1,${item.max})">−</button>`;
+            html += `<span class="qty-num" id="qty-${dataId}">0</span>`;
+            html += `<button class="qty-btn" onclick="adjQty('${dataId}',1,${item.max})">+</button>`;
+            html += `</div></div>`;
+        });
+
+        html += `</div></div>`;
+    });
+
+    html += `</div>`; // hs-content
+
+    html += `<div class="summary-row">`;
+    html += `<div class="summary-box"><label>Mini Points</label><div class="summary-val" id="sum-pts-${seat}">0</div></div>`;
+    html += `<div class="summary-box"><label>Doubles</label><div class="summary-val" id="sum-dbl-${seat}">0</div></div>`;
+    html += `</div>`;
+
+    html += `<div class="seat-total"><span>Point Total</span><strong id="total-${seat}">0</strong></div>`;
+    html += `</div></div>`;
+
+    return html;
 }
 
-// Returns { total, capped } — the seat's final Point Total fed into settlement.
+function initSeatScorers() {
+    const container = document.getElementById('scores-container');
+    container.innerHTML = seats.map(buildSeatScorer).join('');
+}
+
+function toggleHS(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+}
+
+function toggleSection(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+}
+
+function adjQty(dataId, delta, max) {
+    const el = document.getElementById(`qty-${dataId}`);
+    let v = parseInt(el.textContent) + delta;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.textContent = v;
+    el.classList.toggle('has-val', v > 0);
+    calculateScores();
+}
+
+function getSeatHandValues(seat) {
+    let miniPts = 0;
+    let doubles = 0;
+    let limitPts = 0;
+    const winner = document.getElementById('winner-seat').value;
+
+    HAND_SECTIONS.forEach((section, si) => {
+        if (section.winnerOnly && seat !== winner) return;
+        section.items.forEach((item, ii) => {
+            const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+            if (!el) return;
+            const qty = parseInt(el.textContent) || 0;
+            if (qty === 0) return;
+            if (item.type === 'pts') miniPts += item.value * qty;
+            else if (item.type === 'dbl') doubles += item.value * qty;
+            else if (item.type === 'limit') limitPts += item.value * qty;
+        });
+    });
+
+    return { miniPts, doubles, limitPts };
+}
+
 function computePointTotal(seat, winner) {
-    const points = intVal(`mini-${seat}`);
-    const doubles = intVal(`doubles-${seat}`);
-    const limitPts = (seat === winner) ? intVal(`limit-${seat}`) : 0;
+    const { miniPts, doubles, limitPts } = getSeatHandValues(seat);
+
+    document.getElementById(`sum-pts-${seat}`).textContent = miniPts;
+    document.getElementById(`sum-dbl-${seat}`).textContent = doubles;
 
     let total = (limitPts > 0)
-        ? limitPts + points                // 5b
-        : points * Math.pow(2, doubles);   // 5a
+        ? limitPts + miniPts
+        : miniPts * Math.pow(2, doubles);
 
-    const cap = (seat === 'EAST') ? 1000 : 500; // rule 6
+    const cap = (seat === 'EAST') ? 1000 : 500;
     const capped = total > cap;
-    return { total: Math.min(total, cap), capped: capped };
+    return { total: Math.min(total, cap), capped };
 }
 
-// The Limit Hand dropdown is available only for the winning seat.
 function updateWinnerScoringUI() {
     const winner = document.getElementById('winner-seat').value;
     seats.forEach(seat => {
-        const limitSel = document.getElementById(`limit-${seat}`);
         const scorer = document.getElementById(`scorer-${seat}`);
         if (seat === winner) {
-            limitSel.disabled = false;
             scorer.classList.add('is-winner');
         } else {
-            limitSel.disabled = true;
-            limitSel.value = '0';
             scorer.classList.remove('is-winner');
+            // Reset winner-only quantities for non-winners
+            HAND_SECTIONS.forEach((section, si) => {
+                if (!section.winnerOnly) return;
+                section.items.forEach((item, ii) => {
+                    const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                    if (el) {
+                        el.textContent = '0';
+                        el.classList.remove('has-val');
+                    }
+                });
+            });
         }
     });
     updateSeatTags();
+
+    // Auto-set Base Win for the winner (section 3, item 0)
+    seats.forEach(seat => {
+        const el = document.getElementById(`qty-${seat}-3-0`);
+        if (!el) return;
+        if (seat === winner) {
+            el.textContent = '1';
+            el.classList.add('has-val');
+        } else {
+            el.textContent = '0';
+            el.classList.remove('has-val');
+        }
+    });
 }
 
 function updateSeatTags() {
@@ -671,9 +846,6 @@ function updateSeatTags() {
     });
 }
 
-// "Discarded By" options: Self-Drawn, or a discard by any seat except the winner.
-// Always visible and the same size as the selects above it; only selectable
-// once a winner has been chosen.
 function updateDiscardedByDropdown() {
     const winner = document.getElementById('winner-seat').value;
     const select = document.getElementById('discarded-by');
@@ -696,11 +868,8 @@ function updateDiscardedByDropdown() {
         });
     }
 
-    // Keep the prior choice if still valid, otherwise default to Self-Drawn.
     const valid = Array.prototype.some.call(select.options, o => o.value === current);
     select.value = valid ? current : 'SELFDRAW';
-
-    // Selectable only when there is a winner.
     select.disabled = (winner === 'NONE');
 }
 
@@ -721,8 +890,6 @@ function handleWinnerChange() {
 
 function calculateScores() {
     const winner = document.getElementById('winner-seat').value;
-
-    // "Discarded By" dropdown encodes both the win type (self-drawn) and the discarder.
     const discardedBy = (winner === 'NONE') ? 'SELFDRAW' : document.getElementById('discarded-by').value;
     const isSelfDraw = (discardedBy === 'SELFDRAW');
     const discarder = isSelfDraw ? '' : discardedBy;
@@ -731,8 +898,6 @@ function calculateScores() {
     const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
     const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
 
-    // Each seat's Point Total is computed from its mini points / doubles / limit hand,
-    // then used by the settlement matrix exactly as the raw score was before.
     const baseScores = {};
     seats.forEach(seat => {
         const { total, capped } = computePointTotal(seat, winner);
@@ -755,10 +920,9 @@ function calculateScores() {
 
     seats.forEach(p1 => {
         seats.forEach(p2 => {
-            if (p1 === p2) return; 
-            if (p1 === winner) return; 
+            if (p1 === p2) return;
+            if (p1 === winner) return;
 
-            // Scenario A: P2 is the Winner
             if (p2 === winner) {
                 let baseWinValue = baseScores[winner];
 
@@ -804,9 +968,8 @@ function calculateScores() {
                     matrix[p1][p2] = -payout;
                     matrix[p2][p1] = payout;
                 }
-            } 
-            
-            // Scenario B: Both are Non-Winners
+            }
+
             else if (p2 !== winner) {
                 if (baseScores[p1] > baseScores[p2]) {
                     let diff = baseScores[p1] - baseScores[p2];
@@ -820,19 +983,17 @@ function calculateScores() {
         });
     });
 
-    // Render Matrix values
     seats.forEach(p1 => {
         let netResult = 0;
         seats.forEach(p2 => {
             if (p1 === p2) return;
-            
+
             const cellValue = matrix[p1][p2];
             netResult += cellValue;
-            
+
             const cellElement = document.getElementById(`cell-${p1}-${p2}`);
             if (cellElement) {
                 cellElement.innerText = cellValue > 0 ? `+${cellValue}` : cellValue;
-                
                 cellElement.className = '';
                 if (cellValue > 0) cellElement.classList.add('pos-val');
                 else if (cellValue < 0) cellElement.classList.add('neg-val');
@@ -854,9 +1015,20 @@ function resetForm() {
     document.getElementById('winner-seat').value = 'NONE';
 
     seats.forEach(seat => {
-        document.getElementById(`mini-${seat}`).value = 0;
-        document.getElementById(`doubles-${seat}`).value = 0;
-        document.getElementById(`limit-${seat}`).value = '0';
+        HAND_SECTIONS.forEach((section, si) => {
+            section.items.forEach((item, ii) => {
+                const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                if (el) {
+                    el.textContent = '0';
+                    el.classList.remove('has-val');
+                }
+            });
+        });
+        // Collapse hand selection
+        const body = document.querySelector(`#scorer-${seat} .hs-content`);
+        const toggle = document.querySelector(`#scorer-${seat} .hs-toggle`);
+        if (body) body.classList.remove('open');
+        if (toggle) toggle.classList.remove('open');
     });
 
     updateWinnerScoringUI();
@@ -866,6 +1038,7 @@ function resetForm() {
 }
 
 window.onload = function() {
+    initSeatScorers();
     updateWinnerScoringUI();
     updateDiscardedByDropdown();
     calculateScores();
