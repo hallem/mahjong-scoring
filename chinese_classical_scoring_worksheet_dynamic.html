@@ -194,41 +194,6 @@
     .seat-total strong { font-size: 20px; color: #222; }
     .seat-total strong.capped { color: #b32424; }
 
-    /* Winner-only bonus panel */
-    .winner-bonus {
-        background: #fff7f7;
-        border: 1px solid #f0d0d0;
-        border-left: 4px solid #b32424;
-        border-radius: 0 8px 8px 0;
-        padding: 12px 14px;
-        margin-bottom: 20px;
-    }
-    .winner-bonus-head {
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #b32424;
-        letter-spacing: 0.3px;
-        margin-bottom: 10px;
-    }
-    .winner-bonus-head small {
-        font-weight: 600;
-        color: #999;
-        text-transform: none;
-        letter-spacing: 0;
-    }
-    .bonus-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-    .bonus-chk {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        user-select: none;
-        padding: 2px 0;
-    }
-
     /* Table responsive wrapper */
     .table-responsive {
         width: 100%;
@@ -392,7 +357,6 @@
     @media (min-width: 650px) {
         .meta-inputs { grid-template-columns: 1fr 1fr; gap: 24px; }
         .scores-container { grid-template-columns: 1fr 1fr; }
-        .winner-bonus .bonus-grid { grid-template-columns: 1fr 1fr; }
         .header { flex-direction: row; align-items: flex-start; }
         .title-grid-table { margin-bottom: 0; }
     }
@@ -436,13 +400,13 @@
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item hidden-element" id="discarder-container">Who Discarded:
-                    <select class="meta-select" id="discarder-seat" onchange="calculateScores()">
-                        <!-- Dynamic Options loaded by JS -->
+                <div class="meta-item hidden-element" id="wincond-container">Win Condition:
+                    <select class="meta-select" id="win-condition" onchange="handleWinConditionChange()">
+                        <!-- Populated by JS: Self-Drawn + each possible discarder -->
                     </select>
                 </div>
             </div>
-            
+
             <!-- Rules Customizers -->
             <div class="meta-group">
                 <label class="meta-checkbox-label">
@@ -450,12 +414,8 @@
                     Enable East Doubling
                 </label>
                 <label class="meta-checkbox-label">
-                    <input type="checkbox" id="rule-discarder-pays-double" onchange="handleRuleChange()">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="calculateScores()">
                     Discarder Pays Double
-                </label>
-                <label class="meta-checkbox-label">
-                    <input type="checkbox" id="rule-self-draw" checked onchange="handleSelfDrawToggle()">
-                    Self-Draw Win (Tsumo)
                 </label>
             </div>
         </div>
@@ -581,18 +541,6 @@
         </div>
     </div>
 
-    <!-- Winner-only bonus mini points (Base Win 20 is added automatically) -->
-    <div class="winner-bonus hidden-element" id="winner-bonus">
-        <div class="winner-bonus-head">Winner Bonuses <span id="winner-bonus-seat"></span> <small>— Base Win +20 applied automatically</small></div>
-        <div class="bonus-grid">
-            <label class="bonus-chk"><input type="checkbox" id="bonus-pinghu" onchange="calculateScores()"> Pinghu — all chows (+10)</label>
-            <label class="bonus-chk"><input type="checkbox" id="bonus-allpungs" onchange="calculateScores()"> All Pungs (+10)</label>
-            <label class="bonus-chk"><input type="checkbox" id="bonus-replacement" onchange="calculateScores()"> Replacement Tile Win (+10)</label>
-            <label class="bonus-chk"><input type="checkbox" id="bonus-lasttile" onchange="calculateScores()"> Last Tile Win (+10)</label>
-            <label class="bonus-chk"><input type="checkbox" id="bonus-wait" onchange="calculateScores()"> Special wait — eyes / closed / edge (+2)</label>
-        </div>
-    </div>
-    
     <div class="table-responsive">
         <table>
             <thead>
@@ -648,44 +596,31 @@ const seats = ['EAST', 'SOUTH', 'WEST', 'NORTH'];
 
 // --- Chinese Classical scoring ---------------------------------------------
 // Source: mahjong_reference_compendium_6.html, "Scoring Reference Sheet".
-//   Point Total = Mini Points x 2^Doubles        (5a)
-//   Point Total = Limit Points + Mini Points      (5b, limit hands)
+//   Point Total = Points x 2^Doubles               (5a)
+//   Point Total = Limit Points + Points             (5b, limit hands)
 //   Point Limit cap: 1000 for East, 500 for others (6)
-//   Winner also gets Base Win (20) + optional bonus mini points (Step 2b).
-const BASE_WIN = 20;
+// All hand points (base win, bonuses, etc.) are tallied by hand into the Points box.
 
 function intVal(id) {
     return parseInt(document.getElementById(id).value) || 0;
 }
 
-// Winner-only bonus mini points (includes the 20 Base Win and Self-Drawn +2).
-function winnerBonusPoints() {
-    let b = BASE_WIN;
-    if (document.getElementById('bonus-pinghu').checked)      b += 10;
-    if (document.getElementById('bonus-allpungs').checked)    b += 10;
-    if (document.getElementById('bonus-replacement').checked) b += 10;
-    if (document.getElementById('bonus-lasttile').checked)    b += 10;
-    if (document.getElementById('bonus-wait').checked)        b += 2;
-    if (document.getElementById('rule-self-draw').checked)    b += 2; // Self-Drawn Win
-    return b;
-}
-
 // Returns { total, capped } — the seat's final Point Total fed into settlement.
 function computePointTotal(seat, winner) {
-    const mini = intVal(`mini-${seat}`) + (seat === winner ? winnerBonusPoints() : 0);
+    const points = intVal(`mini-${seat}`);
     const doubles = intVal(`doubles-${seat}`);
     const limitPts = (seat === winner) ? intVal(`limit-${seat}`) : 0;
 
     let total = (limitPts > 0)
-        ? limitPts + mini                  // 5b
-        : mini * Math.pow(2, doubles);     // 5a
+        ? limitPts + points                // 5b
+        : points * Math.pow(2, doubles);   // 5a
 
     const cap = (seat === 'EAST') ? 1000 : 500; // rule 6
     const capped = total > cap;
     return { total: Math.min(total, cap), capped: capped };
 }
 
-// Enable the Limit Hand dropdown + winner bonus panel only for the winning seat.
+// The Limit Hand dropdown is available only for the winning seat.
 function updateWinnerScoringUI() {
     const winner = document.getElementById('winner-seat').value;
     seats.forEach(seat => {
@@ -700,75 +635,77 @@ function updateWinnerScoringUI() {
             scorer.classList.remove('is-winner');
         }
     });
+}
 
-    const panel = document.getElementById('winner-bonus');
-    if (winner !== 'NONE') {
-        panel.classList.remove('hidden-element');
-        document.getElementById('winner-bonus-seat').innerText =
-            '— ' + winner.charAt(0) + winner.slice(1).toLowerCase();
-    } else {
-        panel.classList.add('hidden-element');
+// Win Condition options: Self-Drawn, or a discard by any seat except the winner.
+// Hidden entirely when there is no winner.
+function updateWinConditionDropdown() {
+    const winner = document.getElementById('winner-seat').value;
+    const container = document.getElementById('wincond-container');
+    const select = document.getElementById('win-condition');
+
+    if (winner === 'NONE') {
+        container.classList.add('hidden-element');
+        updateDpdAvailability();
+        return;
     }
+
+    container.classList.remove('hidden-element');
+    const current = select.value;
+    select.innerHTML = '';
+
+    const sd = document.createElement('option');
+    sd.value = 'SELFDRAW';
+    sd.innerText = 'Self-Drawn (Tsumo)';
+    select.appendChild(sd);
+
+    seats.forEach(seat => {
+        if (seat !== winner) {
+            const opt = document.createElement('option');
+            opt.value = seat;
+            opt.innerText = 'Discard by ' + seat.charAt(0) + seat.slice(1).toLowerCase();
+            select.appendChild(opt);
+        }
+    });
+
+    // Keep the prior choice if still valid, otherwise default to Self-Drawn.
+    const valid = Array.prototype.some.call(select.options, o => o.value === current);
+    select.value = valid ? current : 'SELFDRAW';
+
+    updateDpdAvailability();
+}
+
+// "Discarder Pays Double" only makes sense on a discard win.
+function updateDpdAvailability() {
+    const winner = document.getElementById('winner-seat').value;
+    const wc = document.getElementById('win-condition').value;
+    const dpd = document.getElementById('rule-discarder-pays-double');
+    const isDiscardWin = (winner !== 'NONE' && wc !== 'SELFDRAW');
+
+    dpd.disabled = !isDiscardWin;
+    dpd.closest('.meta-checkbox-label').style.opacity = isDiscardWin ? '' : '0.45';
+    if (!isDiscardWin) dpd.checked = false;
 }
 
 function handleWinnerChange() {
     updateWinnerScoringUI();
-    updateDiscarderDropdown();
+    updateWinConditionDropdown();
     calculateScores();
 }
 
-function handleSelfDrawToggle() {
-    // Self-draw and a discard win are mutually exclusive.
-    if (document.getElementById('rule-self-draw').checked) {
-        document.getElementById('rule-discarder-pays-double').checked = false;
-    }
-    updateDiscarderDropdown();
+function handleWinConditionChange() {
+    updateDpdAvailability();
     calculateScores();
-}
-
-function handleRuleChange() {
-    // "Discarder Pays Double" implies a discard win, so it can't be self-drawn.
-    if (document.getElementById('rule-discarder-pays-double').checked) {
-        document.getElementById('rule-self-draw').checked = false;
-    }
-    updateDiscarderDropdown();
-    calculateScores();
-}
-
-function updateDiscarderDropdown() {
-    const winner = document.getElementById('winner-seat').value;
-    const discarderPaysDouble = document.getElementById('rule-discarder-pays-double').checked;
-    const container = document.getElementById('discarder-container');
-    const select = document.getElementById('discarder-seat');
-
-    // The discarder only affects scoring under the "Discarder Pays Double" rule,
-    // so only ask for it then (that rule also forces a discard win).
-    if (winner !== 'NONE' && discarderPaysDouble) {
-        container.classList.remove('hidden-element');
-        
-        const currentSelection = select.value;
-        select.innerHTML = '';
-        
-        seats.forEach(seat => {
-            if (seat !== winner) {
-                const opt = document.createElement('option');
-                opt.value = seat;
-                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase();
-                if (seat === currentSelection) opt.selected = true;
-                select.appendChild(opt);
-            }
-        });
-    } else {
-        container.classList.add('hidden-element');
-        select.innerHTML = '';
-    }
 }
 
 function calculateScores() {
     const winner = document.getElementById('winner-seat').value;
-    const isSelfDraw = document.getElementById('rule-self-draw').checked;
-    const discarder = document.getElementById('discarder-seat').value;
-    
+
+    // Win Condition encodes both the win type and (for a discard win) the discarder.
+    const winCondition = (winner === 'NONE') ? 'SELFDRAW' : document.getElementById('win-condition').value;
+    const isSelfDraw = (winCondition === 'SELFDRAW');
+    const discarder = isSelfDraw ? '' : winCondition;
+
     const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
     const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
 
@@ -879,7 +816,6 @@ function calculateScores() {
 
 function resetForm() {
     document.getElementById('winner-seat').value = 'NONE';
-    document.getElementById('rule-self-draw').checked = true;
     document.getElementById('rule-discarder-pays-double').checked = false;
     document.getElementById('rule-east-doubling').checked = true;
 
@@ -889,18 +825,15 @@ function resetForm() {
         document.getElementById(`limit-${seat}`).value = '0';
     });
 
-    ['bonus-pinghu', 'bonus-allpungs', 'bonus-replacement', 'bonus-lasttile', 'bonus-wait']
-        .forEach(id => { document.getElementById(id).checked = false; });
-
     updateWinnerScoringUI();
-    updateDiscarderDropdown();
+    updateWinConditionDropdown();
     calculateScores();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 window.onload = function() {
     updateWinnerScoringUI();
-    updateDiscarderDropdown();
+    updateWinConditionDropdown();
     calculateScores();
 };
 </script>
