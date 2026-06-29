@@ -107,6 +107,17 @@
         color: #222;
     }
 
+    /* Win Condition holds longer text ("Discard by South"): give it room,
+       wrapping to its own full-width line when the label leaves too little space. */
+    .meta-item-wide { flex-wrap: wrap; }
+    .meta-item-wide .meta-select {
+        width: auto;
+        min-width: 180px;
+        flex: 1 1 180px;
+        text-align: left;
+        padding: 0 12px;
+    }
+
     .hidden-element {
         display: none !important;
     }
@@ -393,15 +404,15 @@
                 </div>
                 <div class="meta-item">Winner Seat:
                     <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
-                        <option value="NONE">-- No Win --</option>
+                        <option value="NONE">Wall</option>
                         <option value="EAST">East</option>
                         <option value="SOUTH">South</option>
                         <option value="WEST">West</option>
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item hidden-element" id="wincond-container">Win Condition:
-                    <select class="meta-select" id="win-condition" onchange="handleWinConditionChange()">
+                <div class="meta-item meta-item-wide hidden-element" id="wincond-container">Win Condition:
+                    <select class="meta-select" id="win-condition" onchange="calculateScores()">
                         <!-- Populated by JS: Self-Drawn + each possible discarder -->
                     </select>
                 </div>
@@ -646,7 +657,6 @@ function updateWinConditionDropdown() {
 
     if (winner === 'NONE') {
         container.classList.add('hidden-element');
-        updateDpdAvailability();
         return;
     }
 
@@ -656,7 +666,7 @@ function updateWinConditionDropdown() {
 
     const sd = document.createElement('option');
     sd.value = 'SELFDRAW';
-    sd.innerText = 'Self-Drawn (Tsumo)';
+    sd.innerText = 'Self-Drawn';
     select.appendChild(sd);
 
     seats.forEach(seat => {
@@ -671,30 +681,11 @@ function updateWinConditionDropdown() {
     // Keep the prior choice if still valid, otherwise default to Self-Drawn.
     const valid = Array.prototype.some.call(select.options, o => o.value === current);
     select.value = valid ? current : 'SELFDRAW';
-
-    updateDpdAvailability();
-}
-
-// "Discarder Pays Double" only makes sense on a discard win.
-function updateDpdAvailability() {
-    const winner = document.getElementById('winner-seat').value;
-    const wc = document.getElementById('win-condition').value;
-    const dpd = document.getElementById('rule-discarder-pays-double');
-    const isDiscardWin = (winner !== 'NONE' && wc !== 'SELFDRAW');
-
-    dpd.disabled = !isDiscardWin;
-    dpd.closest('.meta-checkbox-label').style.opacity = isDiscardWin ? '' : '0.45';
-    if (!isDiscardWin) dpd.checked = false;
 }
 
 function handleWinnerChange() {
     updateWinnerScoringUI();
     updateWinConditionDropdown();
-    calculateScores();
-}
-
-function handleWinConditionChange() {
-    updateDpdAvailability();
     calculateScores();
 }
 
