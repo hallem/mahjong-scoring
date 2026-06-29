@@ -372,10 +372,6 @@
 <body>
 
 <div class="app-container">
-    <div class="action-bar">
-        <button class="btn" onclick="resetForm()">Clear Scores</button>
-    </div>
-
     <div class="header">
         <div class="title-grid-table">
             <div class="title-icon">🀄</div>
@@ -385,7 +381,7 @@
         <div class="meta-inputs">
             <!-- Selectors -->
             <div class="meta-group">
-                <div class="meta-item">Round Wind:
+                <div class="meta-item"><span style="white-space: nowrap">Round Wind:</span>
                     <select class="meta-select" id="round-wind" onchange="calculateScores()">
                         <option value="EAST">East</option>
                         <option value="SOUTH">South</option>
@@ -393,7 +389,7 @@
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item">Winner Seat:
+                <div class="meta-item"><span style="white-space: nowrap">Winner Seat:</span>
                     <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
                         <option value="NONE">Wall</option>
                         <option value="EAST">East</option>
@@ -402,7 +398,7 @@
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item" id="wincond-container">Win Condition:
+                <div class="meta-item" id="wincond-container"><span style="white-space: nowrap">Condition:</span>
                     <select class="meta-select" id="win-condition" onchange="calculateScores()" disabled>
                         <!-- Populated by JS: Self-Drawn + each possible discarder -->
                     </select>
@@ -419,6 +415,9 @@
                     <input type="checkbox" id="rule-discarder-pays-double" onchange="calculateScores()">
                     Discarder Pays Double
                 </label>
+                <div class="action-bar">
+                    <button class="btn" onclick="resetForm()">Clear Scores</button>
+                </div>
             </div>
         </div>
     </div>
