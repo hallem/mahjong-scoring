@@ -20,7 +20,7 @@
 
     /* Fluid container */
     .app-container {
-        max-width: 800px;
+        max-width: 80%;
         margin: 0 auto;
         background: #fff;
         padding: clamp(12px, 4vw, 20px);
@@ -31,6 +31,8 @@
     .header {
         display: flex;
         flex-direction: column;
+        flex-wrap: wrap;
+        gap: 16px;
         border-bottom: 2px solid #b32424;
         padding-bottom: 16px;
         margin-bottom: 16px;
@@ -39,7 +41,6 @@
     .title-grid-table {
         display: flex;
         align-items: center;
-        margin-bottom: 16px;
     }
 
     .title-icon {
@@ -357,10 +358,10 @@
 
     /* Desktop overrides */
     @media (min-width: 650px) {
-        .meta-inputs { grid-template-columns: 1fr 1fr; gap: 24px; }
+        .meta-inputs { grid-template-columns: 1fr 1fr; gap: 24px; flex: 1 1 360px; max-width: 560px; }
         .scores-container { grid-template-columns: 1fr 1fr; }
-        .header { flex-direction: row; align-items: flex-start; }
-        .title-grid-table { margin-bottom: 0; }
+        .header { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 24px 32px; }
+        .title-grid-table { flex: 0 0 auto; }
     }
 
     /* Wide screens: all four seat scorers in one row */
@@ -375,7 +376,7 @@
     <div class="header">
         <div class="title-grid-table">
             <div class="title-icon">🀄</div>
-            <div class="title-line1">Chinese Classical<br>Scorer</div>
+            <div class="title-line1">Chinese Classical Scorer</div>
         </div>
         
         <div class="meta-inputs">
@@ -389,7 +390,7 @@
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item"><span style="white-space: nowrap">Winner Seat:</span>
+                <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
                     <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
                         <option value="NONE">Wall</option>
                         <option value="EAST">East</option>
