@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chinese Classical — Single Player Scorer</title>
+    <style>
+    *, *:before, *:after {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: clamp(8px, 3vw, 16px);
+        color: #222;
+        background-color: #f0f2f5;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    .app-container {
+        max-width: 100%;
+        margin: 0 auto;
+        background: #fff;
+        padding: clamp(12px, 4vw, 20px);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    @media (min-width: 600px) {
+        .app-container { max-width: 520px; }
+    }
+
+    .header {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        border-bottom: 2px solid #b32424;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+    }
+
+    .title-icon {
+        font-size: 28px;
+        padding-right: 10px;
+        line-height: 1;
+    }
+
+    .title-text {
+        font-size: clamp(18px, 5vw, 22px);
+        color: #b32424;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .meta-inputs {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .meta-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .meta-select {
+        border: 1px solid #ccc;
+        width: 140px;
+        height: 44px;
+        background: #fcfcfc;
+        font-weight: bold;
+        text-align: center;
+        font-size: 16px;
+        border-radius: 8px;
+        color: #222;
+    }
+
+    .meta-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+        padding: 4px 0;
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #b32424;
+    }
+
+    @media (min-width: 480px) {
+        .meta-inputs { grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+    }
+
+    /* Hand picker */
+    .hand-picker-area {
+        margin-bottom: 16px;
+    }
+
+    .hand-picker-area.at-limit .hand-section-body {
+        pointer-events: none;
+        opacity: 0.4;
+    }
+
+    .hand-section {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+
+    .hand-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #555;
+        background: #f2f2f2;
+        cursor: pointer;
+        user-select: none;
+        letter-spacing: 0.3px;
+    }
+    .hand-section-head::after {
+        content: '▸';
+        font-size: 10px;
+        color: #999;
+        transition: transform 0.2s;
+    }
+    .hand-section-head.open::after {
+        transform: rotate(90deg);
+    }
+
+    .hand-section-body {
+        display: none;
+    }
+    .hand-section-body.open {
+        display: block;
+    }
+
+    .hand-row {
+        display: flex;
+        align-items: center;
+        padding: 6px 12px;
+        font-size: 14px;
+        border-top: 1px solid #eee;
+    }
+    .hand-name { flex: 1; min-width: 0; }
+    .hand-val {
+        color: #999;
+        font-size: 11px;
+        margin-right: 8px;
+        white-space: nowrap;
+    }
+
+    .qty-ctrl {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .qty-btn {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f8f8;
+        border: none;
+        font-size: 18px;
+        font-weight: bold;
+        color: #555;
+        cursor: pointer;
+        padding: 0;
+    }
+    .qty-btn:active { background: #ddd; }
+    .qty-num {
+        width: 28px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #222;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        line-height: 34px;
+    }
+    .qty-num.has-val { color: #b32424; }
+
+    .winner-only-section { display: none; }
+    .show-winner-sections .winner-only-section { display: block; }
+
+    /* Results */
+    .results {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        padding-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .summary-row {
+        display: flex;
+        gap: 10px;
+    }
+    .summary-box { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .summary-box label {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #555;
+        letter-spacing: 0.3px;
+    }
+    .summary-val {
+        height: 44px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #f8f8f8;
+        font-size: 18px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #222;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 2px solid #b32424;
+        padding-top: 10px;
+    }
+
+    .point-total {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+    .point-total-label {
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #b32424;
+        letter-spacing: 0.3px;
+    }
+    .point-total strong { font-size: 24px; color: #222; }
+    .point-total strong.capped { color: #b32424; }
+
+    .limit-badge {
+        display: none;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #fff;
+        background: #b32424;
+        padding: 3px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+    .limit-badge.show { display: inline-block; }
+
+    .btn {
+        background: #b32424;
+        color: #fff;
+        border: none;
+        padding: 0 24px;
+        height: 44px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        box-shadow: 0 2px 4px rgba(179, 36, 36, 0.3);
+    }
+    .btn:active { background: #911d1d; transform: translateY(1px); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <div class="title-row">
+            <div class="title-icon">🀄</div>
+            <div class="title-text">Single Player Scorer</div>
+        </div>
+
+        <div class="meta-inputs">
+            <div class="meta-group">
+                <div class="meta-item">
+                    <span style="white-space: nowrap">Your Seat:</span>
+                    <select class="meta-select" id="player-seat" onchange="recalc()">
+                        <option value="EAST">East</option>
+                        <option value="SOUTH">South</option>
+                        <option value="WEST">West</option>
+                        <option value="NORTH">North</option>
+                    </select>
+                </div>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="is-winner" onchange="handleWinnerToggle()">
+                    Winner
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="is-discarder" onchange="handleDiscarderToggle()">
+                    Discarded Winning Tile
+                </label>
+            </div>
+
+            <div class="meta-group">
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-east-doubling" checked onchange="recalc()">
+                    Enable East Doubling
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
+                    Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
+                    Discarder Pays All
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="hand-picker-area" id="hand-picker"></div>
+
+    <div class="results">
+        <div class="summary-row">
+            <div class="summary-box">
+                <label>Mini Points</label>
+                <div class="summary-val" id="sum-pts">0</div>
+            </div>
+            <div class="summary-box" id="summary-dbl">
+                <label>Doubles</label>
+                <div class="summary-val" id="sum-dbl">0</div>
+            </div>
+        </div>
+        <div class="total-row">
+            <div class="point-total">
+                <span class="point-total-label">Point Total</span>
+                <strong id="point-total">0</strong>
+                <span class="limit-badge" id="limit-badge">Limit</span>
+            </div>
+            <button class="btn" onclick="resetForm()">Clear</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const HAND_SECTIONS = [
+    {
+        id: 'limit',
+        label: 'Limit Hands',
+        winnerOnly: true,
+        items: [
+            { name: 'Blessing of Earth',  type: 'limit', value: 150, max: 1 },
+            { name: 'Blessing of Heaven', type: 'limit', value: 300, max: 1 },
+            { name: 'Three Big Dragons',  type: 'limit', value: 300, max: 1 },
+            { name: 'Thirteen Orphans',   type: 'limit', value: 300, max: 1 },
+            { name: 'Four Big Winds',     type: 'limit', value: 300, max: 1 },
+            { name: 'Nine Gates',         type: 'limit', value: 300, max: 1 }
+        ]
+    },
+    {
+        id: 'doubles',
+        label: 'Doubles',
+        winnerOnly: false,
+        items: [
+            { name: 'Dragon Pung or Kong',       type: 'dbl', value: 1, max: 3 },
+            { name: 'Seat Wind Pung or Kong',     type: 'dbl', value: 1, max: 1 },
+            { name: 'Round Wind Pung or Kong',    type: 'dbl', value: 1, max: 1 },
+            { name: 'Seat Flower and Season',     type: 'dbl', value: 1, max: 2 },
+            { name: 'Half Flush',                 type: 'dbl', value: 1, max: 1 },
+            { name: 'Pure Flush',                 type: 'dbl', value: 3, max: 1 },
+            { name: 'All Honors',                 type: 'dbl', value: 3, max: 1 },
+            { name: 'All Four Flowers',           type: 'dbl', value: 3, max: 1 },
+            { name: 'All Four Seasons',           type: 'dbl', value: 3, max: 1 }
+        ]
+    },
+    {
+        id: 'mini',
+        label: 'Mini Points',
+        winnerOnly: false,
+        items: [
+            { name: 'Pung of Simples',              type: 'pts', value: 2,  max: 4 },
+            { name: 'Pung of Simples (c)',           type: 'pts', value: 4,  max: 4 },
+            { name: 'Kong of Simples',               type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Simples (c)',            type: 'pts', value: 16, max: 4 },
+            { name: 'Pung of Terminals',             type: 'pts', value: 4,  max: 4 },
+            { name: 'Pung of Terminals (c)',          type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Terminals',             type: 'pts', value: 16, max: 4 },
+            { name: 'Kong of Terminals (c)',          type: 'pts', value: 32, max: 4 },
+            { name: 'Pung of Dragons',               type: 'pts', value: 4,  max: 3 },
+            { name: 'Pung of Dragons (c)',            type: 'pts', value: 8,  max: 3 },
+            { name: 'Kong of Dragons',               type: 'pts', value: 16, max: 3 },
+            { name: 'Kong of Dragons (c)',            type: 'pts', value: 32, max: 3 },
+            { name: 'Pung of Seat/Round Winds',      type: 'pts', value: 4,  max: 2 },
+            { name: 'Pung of Seat/Round Winds (c)',   type: 'pts', value: 8,  max: 2 },
+            { name: 'Kong of Seat/Round Winds',      type: 'pts', value: 16, max: 2 },
+            { name: 'Kong of Seat/Round Winds (c)',   type: 'pts', value: 32, max: 2 },
+            { name: 'Pair of Seat/Round Winds',      type: 'pts', value: 2,  max: 2 },
+            { name: 'Pair of Dragons',               type: 'pts', value: 2,  max: 1 },
+            { name: 'Each Seat Flower or Season',    type: 'pts', value: 2,  max: 2 }
+        ]
+    },
+    {
+        id: 'mini-winner',
+        label: 'Mini Points — Winner Only',
+        winnerOnly: true,
+        items: [
+            { name: 'Base Win',              type: 'pts', value: 20, max: 1 },
+            { name: 'Pinghu',                type: 'pts', value: 10, max: 1 },
+            { name: 'All Pungs',             type: 'pts', value: 10, max: 1 },
+            { name: 'Replacement Tile Win',  type: 'pts', value: 10, max: 1 },
+            { name: 'Last Tile Win',         type: 'pts', value: 10, max: 1 },
+            { name: 'Self-Drawn Win',        type: 'pts', value: 2,  max: 1 },
+            { name: 'Eyes Wait',             type: 'pts', value: 2,  max: 1 },
+            { name: 'Closed Wait',           type: 'pts', value: 2,  max: 1 },
+            { name: 'Edge Wait',             type: 'pts', value: 2,  max: 1 }
+        ]
+    }
+];
+
+function buildPicker() {
+    const container = document.getElementById('hand-picker');
+    let html = '';
+
+    HAND_SECTIONS.forEach((section, si) => {
+        const woClass = section.winnerOnly ? ' winner-only-section' : '';
+        html += `<div class="hand-section${woClass}" id="section-${section.id}">`;
+        html += `<div class="hand-section-head" onclick="toggleSection(this)">${section.label}</div>`;
+        html += `<div class="hand-section-body">`;
+
+        section.items.forEach((item, ii) => {
+            const dataId = `${si}-${ii}`;
+            const valLabel = item.type === 'dbl'
+                ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                : `${item.value} pts`;
+            const suffix = item.max > 1 ? ' ea' : '';
+
+            html += `<div class="hand-row">`;
+            html += `<span class="hand-name">${item.name}</span>`;
+            html += `<span class="hand-val">${valLabel}${suffix}</span>`;
+            html += `<div class="qty-ctrl">`;
+            html += `<button class="qty-btn" onclick="adjQty('${dataId}',-1,${item.max})">−</button>`;
+            html += `<span class="qty-num" id="qty-${dataId}">0</span>`;
+            html += `<button class="qty-btn" onclick="adjQty('${dataId}',1,${item.max})">+</button>`;
+            html += `</div></div>`;
+        });
+
+        html += `</div></div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function toggleSection(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+}
+
+function adjQty(dataId, delta, max) {
+    const picker = document.getElementById('hand-picker');
+    if (delta > 0 && picker.classList.contains('at-limit')) return;
+
+    const el = document.getElementById(`qty-${dataId}`);
+    let v = parseInt(el.textContent) + delta;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.textContent = v;
+    el.classList.toggle('has-val', v > 0);
+    recalc();
+}
+
+function onDiscarderRuleChange(which) {
+    if (which === 'double' && document.getElementById('rule-discarder-pays-double').checked) {
+        document.getElementById('rule-discarder-pays-all').checked = false;
+    } else if (which === 'all' && document.getElementById('rule-discarder-pays-all').checked) {
+        document.getElementById('rule-discarder-pays-double').checked = false;
+    }
+    recalc();
+}
+
+function handleDiscarderToggle() {
+    if (document.getElementById('is-discarder').checked) {
+        document.getElementById('is-winner').checked = false;
+        const picker = document.getElementById('hand-picker');
+        picker.classList.remove('show-winner-sections');
+        HAND_SECTIONS.forEach((section, si) => {
+            if (!section.winnerOnly) return;
+            section.items.forEach((item, ii) => {
+                const el = document.getElementById(`qty-${si}-${ii}`);
+                if (el) { el.textContent = '0'; el.classList.remove('has-val'); }
+            });
+        });
+    }
+    recalc();
+}
+
+function handleWinnerToggle() {
+    const isWinner = document.getElementById('is-winner').checked;
+    const picker = document.getElementById('hand-picker');
+
+    if (isWinner) {
+        document.getElementById('is-discarder').checked = false;
+        picker.classList.add('show-winner-sections');
+        const bw = document.getElementById('qty-3-0');
+        if (bw) {
+            bw.textContent = '1';
+            bw.classList.add('has-val');
+        }
+    } else {
+        picker.classList.remove('show-winner-sections');
+        HAND_SECTIONS.forEach((section, si) => {
+            if (!section.winnerOnly) return;
+            section.items.forEach((item, ii) => {
+                const el = document.getElementById(`qty-${si}-${ii}`);
+                if (el) {
+                    el.textContent = '0';
+                    el.classList.remove('has-val');
+                }
+            });
+        });
+    }
+    recalc();
+}
+
+function recalc() {
+    const seat = document.getElementById('player-seat').value;
+    const isWinner = document.getElementById('is-winner').checked;
+
+    let miniPts = 0, doubles = 0, limitPts = 0;
+
+    HAND_SECTIONS.forEach((section, si) => {
+        if (section.winnerOnly && !isWinner) return;
+        section.items.forEach((item, ii) => {
+            const el = document.getElementById(`qty-${si}-${ii}`);
+            if (!el) return;
+            const qty = parseInt(el.textContent) || 0;
+            if (qty === 0) return;
+            if (item.type === 'pts') miniPts += item.value * qty;
+            else if (item.type === 'dbl') doubles += item.value * qty;
+            else if (item.type === 'limit') limitPts += item.value * qty;
+        });
+    });
+
+    const hasLimit = limitPts > 0;
+    document.getElementById('section-doubles').style.display = hasLimit ? 'none' : '';
+    document.getElementById('summary-dbl').style.display = hasLimit ? 'none' : '';
+
+    document.getElementById('sum-pts').textContent = miniPts;
+    document.getElementById('sum-dbl').textContent = doubles;
+
+    if (hasLimit) {
+        // Clear doubles quantities when a limit hand is active
+        HAND_SECTIONS[1].items.forEach((item, ii) => {
+            const el = document.getElementById(`qty-1-${ii}`);
+            if (el) { el.textContent = '0'; el.classList.remove('has-val'); }
+        });
+        doubles = 0;
+        document.getElementById('sum-dbl').textContent = 0;
+    }
+
+    let total = hasLimit
+        ? limitPts + miniPts
+        : miniPts * Math.pow(2, doubles);
+
+    const eastDoubling = document.getElementById('rule-east-doubling').checked;
+    if (eastDoubling && seat === 'EAST') {
+        total *= 2;
+    }
+
+    const cap = (seat === 'EAST') ? 1000 : 500;
+    const capped = total >= cap;
+    total = Math.min(total, cap);
+
+    const totalEl = document.getElementById('point-total');
+    totalEl.textContent = total;
+    totalEl.classList.toggle('capped', capped);
+
+    const badge = document.getElementById('limit-badge');
+    badge.classList.toggle('show', capped);
+
+    const picker = document.getElementById('hand-picker');
+    picker.classList.toggle('at-limit', capped);
+}
+
+function resetForm() {
+    document.getElementById('is-winner').checked = false;
+    document.getElementById('is-discarder').checked = false;
+
+    HAND_SECTIONS.forEach((section, si) => {
+        section.items.forEach((item, ii) => {
+            const el = document.getElementById(`qty-${si}-${ii}`);
+            if (el) {
+                el.textContent = '0';
+                el.classList.remove('has-val');
+            }
+        });
+    });
+
+    document.getElementById('hand-picker').classList.remove('show-winner-sections');
+    document.getElementById('hand-picker').classList.remove('at-limit');
+
+    document.querySelectorAll('.hand-section-head.open').forEach(el => {
+        el.classList.remove('open');
+        el.nextElementSibling.classList.remove('open');
+    });
+
+    recalc();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.onload = function() {
+    buildPicker();
+    recalc();
+};
+</script>
+
+</body>
+</html>
