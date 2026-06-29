@@ -20,12 +20,17 @@
 
     /* Fluid container */
     .app-container {
-        max-width: 80%;
+        max-width: 100%;            /* small screens: use the full (padded) width */
         margin: 0 auto;
         background: #fff;
         padding: clamp(12px, 4vw, 20px);
         border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    /* Only leave the 20% side gutters once the screen is wide enough for them. */
+    @media (min-width: 1024px) {
+        .app-container { max-width: 80%; }
     }
 
     .header {
