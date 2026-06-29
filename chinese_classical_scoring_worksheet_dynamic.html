@@ -260,7 +260,7 @@
 
     .action-bar {
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
         margin-bottom: 16px;
     }
 
@@ -407,6 +407,9 @@
 
             <!-- Rules Customizers -->
             <div class="meta-group">
+                <div class="action-bar">
+                    <button class="btn" onclick="resetForm()">Clear Scores</button>
+                </div>
                 <label class="meta-checkbox-label">
                     <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores()">
                     Enable East Doubling
@@ -415,9 +418,6 @@
                     <input type="checkbox" id="rule-discarder-pays-double" onchange="calculateScores()">
                     Discarder Pays Double
                 </label>
-                <div class="action-bar">
-                    <button class="btn" onclick="resetForm()">Clear Scores</button>
-                </div>
             </div>
         </div>
     </div>
