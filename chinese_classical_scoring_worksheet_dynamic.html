@@ -143,10 +143,11 @@
         letter-spacing: 0.5px;
         font-size: 14px;
         padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    .seat-scorer.is-winner .seat-scorer-head { background: #8a1a1a; }
-    .seat-scorer.is-winner .seat-scorer-head::after {
-        content: " \1F3C6 WINNER";
+    .seat-tag {
         font-size: 11px;
         font-weight: 700;
         opacity: 0.9;
@@ -252,7 +253,7 @@
     th.net-col {
         background-color: #b32424 !important;
         color: #fff;
-        border-left: none;
+        border: 2px solid #b32424;
     }
 
     .diagonal {
@@ -284,7 +285,7 @@
     }
     .btn:active { background: #911d1d; transform: translateY(1px); }
 
-    /* Phone: turn the payout matrix into stacked per-player cards */
+    /* Phone: turn the payout matrix into a single Net Result Summary card */
     @media (max-width: 560px) {
         .table-responsive {
             overflow-x: visible;
@@ -295,23 +296,20 @@
 
         table { display: block; min-width: 0; border: none; font-size: 15px; }
         thead { display: none; }
-        tbody { display: block; }
-
-        tr {
-            display: block;
+        
+        tbody { 
+            display: block; 
             background: #fff;
             border: 1px solid #ddd;
             border-radius: 10px;
-            margin-bottom: 14px;
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
         }
 
-        /* Player name becomes the card header */
-        td.player-name {
+        tbody::before {
+            content: "Net Results";
             display: block;
-            width: 100%;
-            text-align: left;
             background-color: #b32424;
             color: #fff;
             font-size: 15px;
@@ -320,45 +318,57 @@
             letter-spacing: 0.5px;
             padding: 10px 14px;
         }
-        td.player-name::before { content: none; }
 
-        /* Each value: label on the left, amount on the right */
-        td {
+        tr {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            gap: 12px;
-            width: 100%;
-            text-align: right;
-            padding: 11px 14px;
-            border: none;
+            align-items: center;
             border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+        tr:last-child {
+            border-bottom: none;
+        }
+
+        /* Player name on the left */
+        td.player-name {
+            display: block;
+            width: auto;
+            text-align: left;
+            background: none;
+            color: #333;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 14px;
+            border: none;
+        }
+        td.player-name::before { content: none; }
+
+        /* General td styling overridden for the two visible cells */
+        td {
+            display: block;
+            width: auto;
+            padding: 12px 14px;
+            border: none;
             font-size: 16px;
             font-weight: bold;
         }
-        td::before {
-            content: attr(data-label);
-            color: #666;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 12px;
-            letter-spacing: 0.3px;
-            text-align: left;
+        td::before { content: none; }
+
+        /* Hide individual pairwise transactions to show only the net result */
+        td:not(.player-name):not(.net-col) {
+            display: none;
         }
 
-        /* The self/diagonal "X" cell adds no info in card view */
-        td.diagonal { display: none; }
-
-        /* Emphasize the NET row at the bottom of each card */
+        /* Net result on the right */
         td.net-col {
-            width: 100%;
-            background-color: #fdf2f2;
-            border-left: none;
-            border-bottom: none;
-            border-top: 2px solid #b32424;
-            font-size: 18px;
+            display: block;
+            width: auto;
+            background: none;
+            border: none;
+            font-size: 16px;
+            text-align: right;
         }
-        td.net-col::before { color: #b32424; }
     }
 
     /* Desktop overrides */
@@ -381,20 +391,12 @@
     <div class="header">
         <div class="title-grid-table">
             <div class="title-icon">🀄</div>
-            <div class="title-line1">Chinese Classical Scorer</div>
+            <div class="title-line1">Chinese Classical</div>
         </div>
         
         <div class="meta-inputs">
             <!-- Selectors -->
             <div class="meta-group">
-                <div class="meta-item"><span style="white-space: nowrap">Round Wind:</span>
-                    <select class="meta-select" id="round-wind" onchange="calculateScores()">
-                        <option value="EAST">East</option>
-                        <option value="SOUTH">South</option>
-                        <option value="WEST">West</option>
-                        <option value="NORTH">North</option>
-                    </select>
-                </div>
                 <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
                     <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
                         <option value="NONE">Wall</option>
@@ -404,8 +406,8 @@
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item" id="wincond-container"><span style="white-space: nowrap">Condition:</span>
-                    <select class="meta-select" id="win-condition" onchange="calculateScores()" disabled>
+                <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
+                    <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); calculateScores()" disabled>
                         <!-- Populated by JS: Self-Drawn + each possible discarder -->
                     </select>
                 </div>
@@ -413,16 +415,17 @@
 
             <!-- Rules Customizers -->
             <div class="meta-group">
-                <div class="action-bar">
-                    <button class="btn" onclick="resetForm()">Clear Scores</button>
-                </div>
                 <label class="meta-checkbox-label">
                     <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores()">
                     Enable East Doubling
                 </label>
                 <label class="meta-checkbox-label">
-                    <input type="checkbox" id="rule-discarder-pays-double" onchange="calculateScores()">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
                     Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
+                    Discarder Pays All
                 </label>
             </div>
         </div>
@@ -432,11 +435,11 @@
         <!-- One scoring group per seat. Enter Points + Doubles, or pick a Limit Hand
              (winner only). Point Total is computed per Chinese Classical rules. -->
         <div class="seat-scorer" id="scorer-EAST">
-            <div class="seat-scorer-head">EAST</div>
+            <div class="seat-scorer-head"><span>EAST</span><span class="seat-tag" id="tag-EAST"></span></div>
             <div class="seat-body">
                 <div class="fields-row">
                     <div class="seat-field">
-                        <label for="mini-EAST">Points</label>
+                        <label for="mini-EAST">Mini Points</label>
                         <input type="number" class="num-input" id="mini-EAST" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
                     </div>
                     <div class="seat-field">
@@ -461,11 +464,11 @@
         </div>
 
         <div class="seat-scorer" id="scorer-SOUTH">
-            <div class="seat-scorer-head">SOUTH</div>
+            <div class="seat-scorer-head"><span>SOUTH</span><span class="seat-tag" id="tag-SOUTH"></span></div>
             <div class="seat-body">
                 <div class="fields-row">
                     <div class="seat-field">
-                        <label for="mini-SOUTH">Points</label>
+                        <label for="mini-SOUTH">Mini Points</label>
                         <input type="number" class="num-input" id="mini-SOUTH" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
                     </div>
                     <div class="seat-field">
@@ -490,11 +493,11 @@
         </div>
 
         <div class="seat-scorer" id="scorer-WEST">
-            <div class="seat-scorer-head">WEST</div>
+            <div class="seat-scorer-head"><span>WEST</span><span class="seat-tag" id="tag-WEST"></span></div>
             <div class="seat-body">
                 <div class="fields-row">
                     <div class="seat-field">
-                        <label for="mini-WEST">Points</label>
+                        <label for="mini-WEST">Mini Points</label>
                         <input type="number" class="num-input" id="mini-WEST" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
                     </div>
                     <div class="seat-field">
@@ -519,11 +522,11 @@
         </div>
 
         <div class="seat-scorer" id="scorer-NORTH">
-            <div class="seat-scorer-head">NORTH</div>
+            <div class="seat-scorer-head"><span>NORTH</span><span class="seat-tag" id="tag-NORTH"></span></div>
             <div class="seat-body">
                 <div class="fields-row">
                     <div class="seat-field">
-                        <label for="mini-NORTH">Points</label>
+                        <label for="mini-NORTH">Mini Points</label>
                         <input type="number" class="num-input" id="mini-NORTH" value="0" min="0" inputmode="numeric" oninput="calculateScores()" onfocus="this.select()">
                     </div>
                     <div class="seat-field">
@@ -552,7 +555,7 @@
         <table>
             <thead>
             <tr>
-                <th>Plyr ↓</th>
+                <th>Player</th>
                 <th class="pay-col">vs EAST</th>
                 <th class="pay-col">vs SOUTH</th>
                 <th class="pay-col">vs WEST</th>
@@ -562,7 +565,7 @@
             </thead>
             <tbody>
             <tr id="row-EAST">
-                <td class="player-name">EAST</td>
+                <td class="player-name">East</td>
                 <td class="diagonal" data-label="vs East">X</td>
                 <td id="cell-EAST-SOUTH" data-label="vs South">0</td>
                 <td id="cell-EAST-WEST" data-label="vs West">0</td>
@@ -570,7 +573,7 @@
                 <td class="net-col" id="net-EAST" data-label="Net Result">0</td>
             </tr>
             <tr id="row-SOUTH">
-                <td class="player-name">SOUTH</td>
+                <td class="player-name">South</td>
                 <td id="cell-SOUTH-EAST" data-label="vs East">0</td>
                 <td class="diagonal" data-label="vs South">X</td>
                 <td id="cell-SOUTH-WEST" data-label="vs West">0</td>
@@ -578,7 +581,7 @@
                 <td class="net-col" id="net-SOUTH" data-label="Net Result">0</td>
             </tr>
             <tr id="row-WEST">
-                <td class="player-name">WEST</td>
+                <td class="player-name">West</td>
                 <td id="cell-WEST-EAST" data-label="vs East">0</td>
                 <td id="cell-WEST-SOUTH" data-label="vs South">0</td>
                 <td class="diagonal" data-label="vs West">X</td>
@@ -586,7 +589,7 @@
                 <td class="net-col" id="net-WEST" data-label="Net Result">0</td>
             </tr>
             <tr id="row-NORTH">
-                <td class="player-name">NORTH</td>
+                <td class="player-name">North</td>
                 <td id="cell-NORTH-EAST" data-label="vs East">0</td>
                 <td id="cell-NORTH-SOUTH" data-label="vs South">0</td>
                 <td id="cell-NORTH-WEST" data-label="vs West">0</td>
@@ -595,6 +598,10 @@
             </tr>
             </tbody>
         </table>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn" onclick="resetForm()">Clear Scores</button>
     </div>
 </div>
 
@@ -642,14 +649,34 @@ function updateWinnerScoringUI() {
             scorer.classList.remove('is-winner');
         }
     });
+    updateSeatTags();
 }
 
-// Win Condition options: Self-Drawn, or a discard by any seat except the winner.
+function updateSeatTags() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    const isSelfDraw = (discardedBy === 'SELFDRAW');
+    seats.forEach(seat => {
+        const tag = document.getElementById(`tag-${seat}`);
+        const scorer = document.getElementById(`scorer-${seat}`);
+        scorer.classList.remove('is-discarder');
+        if (seat === winner) {
+            tag.textContent = '🏆 WINNER';
+        } else if (!isSelfDraw && seat === discardedBy && winner !== 'NONE') {
+            tag.textContent = '🎯 DISCARDER';
+            scorer.classList.add('is-discarder');
+        } else {
+            tag.textContent = '';
+        }
+    });
+}
+
+// "Discarded By" options: Self-Drawn, or a discard by any seat except the winner.
 // Always visible and the same size as the selects above it; only selectable
 // once a winner has been chosen.
-function updateWinConditionDropdown() {
+function updateDiscardedByDropdown() {
     const winner = document.getElementById('winner-seat').value;
-    const select = document.getElementById('win-condition');
+    const select = document.getElementById('discarded-by');
     const current = select.value;
     select.innerHTML = '';
 
@@ -663,7 +690,7 @@ function updateWinConditionDropdown() {
             if (seat !== winner) {
                 const opt = document.createElement('option');
                 opt.value = seat;
-                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase() + ' Discarded';
+                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase();
                 select.appendChild(opt);
             }
         });
@@ -677,22 +704,32 @@ function updateWinConditionDropdown() {
     select.disabled = (winner === 'NONE');
 }
 
+function onDiscarderRuleChange(which) {
+    if (which === 'double' && document.getElementById('rule-discarder-pays-double').checked) {
+        document.getElementById('rule-discarder-pays-all').checked = false;
+    } else if (which === 'all' && document.getElementById('rule-discarder-pays-all').checked) {
+        document.getElementById('rule-discarder-pays-double').checked = false;
+    }
+    calculateScores();
+}
+
 function handleWinnerChange() {
     updateWinnerScoringUI();
-    updateWinConditionDropdown();
+    updateDiscardedByDropdown();
     calculateScores();
 }
 
 function calculateScores() {
     const winner = document.getElementById('winner-seat').value;
 
-    // Win Condition encodes both the win type and (for a discard win) the discarder.
-    const winCondition = (winner === 'NONE') ? 'SELFDRAW' : document.getElementById('win-condition').value;
-    const isSelfDraw = (winCondition === 'SELFDRAW');
-    const discarder = isSelfDraw ? '' : winCondition;
+    // "Discarded By" dropdown encodes both the win type (self-drawn) and the discarder.
+    const discardedBy = (winner === 'NONE') ? 'SELFDRAW' : document.getElementById('discarded-by').value;
+    const isSelfDraw = (discardedBy === 'SELFDRAW');
+    const discarder = isSelfDraw ? '' : discardedBy;
 
     const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
     const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
+    const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
 
     // Each seat's Point Total is computed from its mini points / doubles / limit hand,
     // then used by the settlement matrix exactly as the raw score was before.
@@ -724,7 +761,7 @@ function calculateScores() {
             // Scenario A: P2 is the Winner
             if (p2 === winner) {
                 let baseWinValue = baseScores[winner];
-                
+
                 if (isSelfDraw) {
                     let payout = baseWinValue;
                     if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
@@ -732,26 +769,40 @@ function calculateScores() {
                     }
                     matrix[p1][p2] = -payout;
                     matrix[p2][p1] = payout;
-                } else {
-                    if (discarderPaysDoubleEnabled) {
-                        if (p1 === discarder) {
-                            let payout = baseWinValue * 2;
-                            if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
-                                payout *= 2; 
+                } else if (discarderPaysAllEnabled) {
+                    if (p1 === discarder) {
+                        let totalPayout = 0;
+                        seats.forEach(loser => {
+                            if (loser === winner) return;
+                            let payout = baseWinValue;
+                            if (eastDoublingEnabled && (loser === 'EAST' || winner === 'EAST')) {
+                                payout *= 2;
                             }
-                            matrix[p1][p2] = -payout;
-                            matrix[p2][p1] = payout;
-                        } else {
-                            matrix[p1][p2] = 0;
-                        }
+                            totalPayout += payout;
+                        });
+                        matrix[p1][p2] = -totalPayout;
+                        matrix[p2][p1] = totalPayout;
                     } else {
-                        let payout = baseWinValue;
+                        matrix[p1][p2] = 0;
+                    }
+                } else if (discarderPaysDoubleEnabled) {
+                    if (p1 === discarder) {
+                        let payout = baseWinValue * 2;
                         if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
                             payout *= 2;
                         }
                         matrix[p1][p2] = -payout;
                         matrix[p2][p1] = payout;
+                    } else {
+                        matrix[p1][p2] = 0;
                     }
+                } else {
+                    let payout = baseWinValue;
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        payout *= 2;
+                    }
+                    matrix[p1][p2] = -payout;
+                    matrix[p2][p1] = payout;
                 }
             } 
             
@@ -801,8 +852,6 @@ function calculateScores() {
 
 function resetForm() {
     document.getElementById('winner-seat').value = 'NONE';
-    document.getElementById('rule-discarder-pays-double').checked = false;
-    document.getElementById('rule-east-doubling').checked = true;
 
     seats.forEach(seat => {
         document.getElementById(`mini-${seat}`).value = 0;
@@ -811,14 +860,14 @@ function resetForm() {
     });
 
     updateWinnerScoringUI();
-    updateWinConditionDropdown();
+    updateDiscardedByDropdown();
     calculateScores();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 window.onload = function() {
     updateWinnerScoringUI();
-    updateWinConditionDropdown();
+    updateDiscardedByDropdown();
     calculateScores();
 };
 </script>

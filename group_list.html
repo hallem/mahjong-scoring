@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Group Score List</title>
+    <style>
+        body {
+            --list-color: blue;
+
+            font-family: sans-serif;
+        }
+
+        .green {
+            --list-color: green;
+        }
+        .orange {
+            --list-color: orange;
+        }
+
+        .pink {
+            --list-color: pink;
+        }
+
+        .yellow {
+            --list-color: khaki;
+        }
+
+        .columns {
+            columns: 3 280px; /* max 3 columns, min 280px each */
+            column-gap: 1rem;
+
+            .list-set {
+                break-inside: avoid;
+            }
+
+            .list-set:first-child h2 {
+                margin-block-start: 0;
+            }
+        }
+
+        h2 {
+            font-family: sans-serif;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+
+            &.group > li {
+                anchor-scope: --content;
+            }
+
+            &.group li:not(:has(ul)) + li > .content {
+                border-top: transparent;
+            }
+
+            li:has(+ li) li:last-child > .sub-content {
+                border-bottom: transparent;
+            }
+        }
+
+        li {
+            .content,
+            .sub-content {
+                border: 3px solid var(--list-color);
+                background-color: oklch(from var(--list-color) calc(l + .1) c h);
+
+                padding: 1rem;
+
+                font-size: 20px;
+            }
+
+            .content {
+                anchor-name: --content;
+
+            }
+
+            .sub-content {
+                anchor-name: --sub-content;
+                anchor-scope: --sub-content;
+
+                border-top: 0;
+                background-color: oklch(from var(--list-color) calc(l + .35) c h);
+            }
+
+            .sub-content::after {
+                content: "";
+
+                border: 3px solid black;
+                border-top: transparent;
+                border-right: transparent;
+
+
+                position: absolute;
+
+                top: anchor(bottom --content);
+                left: calc(anchor(left --content) + 2rem);
+                bottom: anchor(center --sub-content);
+                right: calc(anchor(left --sub-content) + 8px);
+            }
+
+            .sub-content::before {
+                content: "";
+
+                border-top: 7px solid transparent;
+                border-bottom: 7px solid transparent;
+                border-left: 9px solid black;
+
+                position: absolute;
+
+                top: calc(anchor(center --sub-content) - 9px);
+                right: calc(anchor(left --sub-content) + 2px);
+            }
+
+
+            ul {
+                margin-inline-start: 4rem;
+            }
+        }
+
+        .content, .sub-content {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            gap: 1rem;
+
+            p {
+                margin-block: 0;
+
+                &:not(.title) {
+                    margin-block-start: .5rem;
+                }
+
+                &.title {
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                }
+            }
+
+            .hex {
+                width: 50px;
+                color: white;
+                /* Mathematically scales the height to prevent distortion */
+                aspect-ratio: 1 / cos(30deg);
+                background-color: black;
+                /* Coordinates forming the 6 points of the hexagon */
+                clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="columns">
+    <div class="list-set">
+        <h2>Group Title</h2>
+        <ul class="group blue">
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+                <ul>
+                    <li>
+                        <div class="sub-content">
+                            <div class="hex"><span>1</span></div>
+                            <div class="text">
+                                <p class="title">title</p>
+                                <p>description</p>
+                            </div>
+                        </div>
+                    </li><li>
+                    <div class="sub-content">
+                        <div class="hex"><span>1</span></div>
+                        <div class="text">
+                            <p class="title">title</p>
+                            <p>description</p>
+                        </div>
+                    </div>
+                </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+
+    <div class="list-set">
+        <h2>Group Title</h2>
+        <ul class="group green">
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+                <ul>
+                    <li>
+                        <div class="sub-content">
+                            <div class="hex"><span>1</span></div>
+                            <div class="text">
+                                <p class="title">title</p>
+                                <p>description</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+
+    <div class="list-set">
+        <h2>Group Title</h2>
+        <ul class="group orange">
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+                <ul>
+                    <li>
+                        <div class="sub-content">
+                            <div class="hex"><span>1</span></div>
+                            <div class="text">
+                                <p class="title">title</p>
+                                <p>description</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="sub-content">
+                            <div class="hex"><span>1</span></div>
+                            <div class="text">
+                                <p class="title">title</p>
+                                <p>description</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="sub-content">
+                            <div class="hex"><span>1</span></div>
+                            <div class="text">
+                                <p class="title">title</p>
+                                <p>description</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+
+    <div class="list-set">
+        <h2>Group Title</h2>
+        <ul class="group yellow">
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+
+    <div class="list-set">
+        <h2>Group Title</h2>
+        <ul class="group pink">
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="content">
+                    <div class="hex"><span>1</span></div>
+                    <div class="text">
+                        <p class="title">title</p>
+                        <p>description</p>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+
+</body>
+</html>
