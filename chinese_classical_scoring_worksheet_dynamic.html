@@ -107,16 +107,7 @@
         color: #222;
     }
 
-    /* Win Condition holds longer text ("Discard by South"): give it room,
-       wrapping to its own full-width line when the label leaves too little space. */
-    .meta-item-wide { flex-wrap: wrap; }
-    .meta-item-wide .meta-select {
-        width: auto;
-        min-width: 180px;
-        flex: 1 1 180px;
-        text-align: left;
-        padding: 0 12px;
-    }
+    .meta-select:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
 
     .hidden-element {
         display: none !important;
@@ -411,8 +402,8 @@
                         <option value="NORTH">North</option>
                     </select>
                 </div>
-                <div class="meta-item meta-item-wide hidden-element" id="wincond-container">Win Condition:
-                    <select class="meta-select" id="win-condition" onchange="calculateScores()">
+                <div class="meta-item" id="wincond-container">Win Condition:
+                    <select class="meta-select" id="win-condition" onchange="calculateScores()" disabled>
                         <!-- Populated by JS: Self-Drawn + each possible discarder -->
                     </select>
                 </div>
@@ -649,18 +640,11 @@ function updateWinnerScoringUI() {
 }
 
 // Win Condition options: Self-Drawn, or a discard by any seat except the winner.
-// Hidden entirely when there is no winner.
+// Always visible and the same size as the selects above it; only selectable
+// once a winner has been chosen.
 function updateWinConditionDropdown() {
     const winner = document.getElementById('winner-seat').value;
-    const container = document.getElementById('wincond-container');
     const select = document.getElementById('win-condition');
-
-    if (winner === 'NONE') {
-        container.classList.add('hidden-element');
-        return;
-    }
-
-    container.classList.remove('hidden-element');
     const current = select.value;
     select.innerHTML = '';
 
@@ -669,18 +653,23 @@ function updateWinConditionDropdown() {
     sd.innerText = 'Self-Drawn';
     select.appendChild(sd);
 
-    seats.forEach(seat => {
-        if (seat !== winner) {
-            const opt = document.createElement('option');
-            opt.value = seat;
-            opt.innerText = 'Discard by ' + seat.charAt(0) + seat.slice(1).toLowerCase();
-            select.appendChild(opt);
-        }
-    });
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase() + ' Discarded';
+                select.appendChild(opt);
+            }
+        });
+    }
 
     // Keep the prior choice if still valid, otherwise default to Self-Drawn.
     const valid = Array.prototype.some.call(select.options, o => o.value === current);
     select.value = valid ? current : 'SELFDRAW';
+
+    // Selectable only when there is a winner.
+    select.disabled = (winner === 'NONE');
 }
 
 function handleWinnerChange() {
