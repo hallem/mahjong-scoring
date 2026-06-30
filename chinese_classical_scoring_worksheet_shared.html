@@ -696,7 +696,13 @@
             <span class="seat-tag" id="my-seat-label" style="margin-left:10px; color:#185fa5;"></span>
         </div>
 
-        <div class="meta-inputs">
+    </div>
+
+    <div class="other-seats-status" id="other-seats-status"></div>
+
+    <div class="lobby-box" style="margin-bottom: 14px;">
+        <h3>Game Settings</h3>
+        <div class="meta-inputs" style="max-width: 100%;">
             <div class="meta-group">
                 <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
                     <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
@@ -712,7 +718,6 @@
                     </select>
                 </div>
             </div>
-
             <div class="meta-group">
                 <label class="meta-checkbox-label">
                     <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores(); pushRuleChange();">
@@ -729,8 +734,6 @@
             </div>
         </div>
     </div>
-
-    <div class="other-seats-status" id="other-seats-status"></div>
 
     <div class="scores-container" id="scores-container">
     </div>
