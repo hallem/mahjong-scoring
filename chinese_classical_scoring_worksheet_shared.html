@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chinese Classical Mahjong Scorer (Shared)</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+    *, *:before, *:after {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: clamp(8px, 3vw, 16px);
+        color: #222;
+        background-color: #f0f2f5;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* Fluid container */
+    .app-container {
+        max-width: 100%;            /* small screens: use the full (padded) width */
+        margin: 0 auto;
+        background: #fff;
+        padding: clamp(12px, 4vw, 20px);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    /* Only leave the 20% side gutters once the screen is wide enough for them. */
+    @media (min-width: 1024px) {
+        .app-container { max-width: 80%; }
+    }
+
+    .header {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        gap: 16px;
+        border-bottom: 2px solid #b32424;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+    }
+
+    .title-grid-table {
+        display: flex;
+        align-items: center;
+    }
+
+    .title-icon {
+        font-size: 28px;
+        padding-right: 10px;
+        line-height: 1;
+    }
+
+    .title-line1 {
+        font-size: clamp(18px, 5vw, 22px);
+        color: #b32424;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .meta-inputs {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .meta-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .meta-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+        padding: 4px 0;
+    }
+
+    /* Enlarge checkboxes for mobile touch */
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #b32424;
+    }
+
+    /* 44px min-height for iOS touch targets */
+    .meta-select {
+        border: 1px solid #ccc;
+        width: 140px;
+        height: 44px;
+        background: #fcfcfc;
+        font-weight: bold;
+        text-align: center;
+        font-size: 16px; /* 16px prevents iOS auto-zoom */
+        border-radius: 8px;
+        color: #222;
+    }
+
+    .meta-select:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+
+    .hidden-element {
+        display: none !important;
+    }
+
+    /* Lobby / room join-create UI */
+    .lobby-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 8px 0 20px;
+    }
+    .lobby-box {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .lobby-box h3 {
+        margin: 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #b32424;
+    }
+    .lobby-input {
+        height: 44px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        padding: 0 10px;
+        text-transform: uppercase;
+    }
+    .lobby-error {
+        color: #c62828;
+        font-size: 13px;
+        min-height: 16px;
+    }
+    .lobby-link-box {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .lobby-link-box input {
+        flex: 1;
+        height: 40px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0 8px;
+        font-size: 13px;
+        color: #555;
+    }
+    .seat-pick-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .seat-pick-btn {
+        height: 56px;
+        border-radius: 10px;
+        border: 2px solid #b32424;
+        background: #fff;
+        color: #b32424;
+        font-weight: 800;
+        font-size: 15px;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+    .seat-pick-btn:disabled {
+        border-color: #ccc;
+        color: #aaa;
+        cursor: not-allowed;
+        background: #f5f5f5;
+    }
+
+    /* Other-seats submission status strip */
+    .other-seats-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .seat-status-chip {
+        flex: 1 1 120px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+        background: #f8f8f8;
+        color: #888;
+    }
+    .seat-status-chip.submitted {
+        background: #eaf6ec;
+        color: #2e7d32;
+        border-color: #2e7d32;
+    }
+    .sync-toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #222;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+        z-index: 50;
+    }
+    .sync-toast.show { opacity: 0.92; }
+
+    /* Per-seat scoring groups */
+    .scores-container {
+        display: grid;
+        grid-template-columns: 1fr;   /* phones: one card per row */
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .seat-scorer {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .seat-scorer-head {
+        background: #b32424;
+        color: #fff;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 14px;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .seat-tag {
+        font-size: 11px;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    .seat-body {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .seat-total {
+        border-top: 2px solid #b32424;
+        padding-top: 8px;
+    }
+    .seat-total-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+    .seat-total-main > span {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #b32424;
+        letter-spacing: 0.3px;
+    }
+    .seat-total-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+    .seat-total strong { font-size: 20px; color: #222; }
+    .seat-total strong.capped { color: #b32424; }
+
+    /* Hand selection picker */
+    .hs-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 12px;
+        font-weight: 800;
+        color: #b32424;
+        cursor: pointer;
+        user-select: none;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        border-bottom: 1px solid #ddd;
+    }
+    .hs-toggle::after {
+        content: '▸';
+        font-size: 11px;
+        transition: transform 0.2s;
+    }
+    .hs-toggle.open::after {
+        transform: rotate(90deg);
+    }
+    .hs-content {
+        display: none;
+        padding-top: 8px;
+    }
+    .hs-content.open {
+        display: block;
+    }
+
+    .hand-section {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+
+    .picker-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        cursor: pointer;
+    }
+    .picker-label input[type="radio"],
+    .picker-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #b32424;
+        flex-shrink: 0;
+        margin: 0;
+    }
+
+    .status-badge {
+        display: none;
+        font-size: 9px;
+        font-weight: 700;
+        color: #fff;
+        padding: 2px 5px;
+        border-radius: 4px;
+        vertical-align: middle;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    .status-badge.show { display: inline-block; }
+    .limit-badge { background: #b32424; }
+    .east-badge { background: #185fa5; }
+    .base-total { display: none; font-size: 13px; color: #888; }
+    .base-total.show { display: inline-block; }
+    .hand-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #555;
+        background: #f2f2f2;
+        cursor: pointer;
+        user-select: none;
+        letter-spacing: 0.3px;
+    }
+    .hand-section-head::after {
+        content: '▸';
+        font-size: 10px;
+        color: #999;
+        transition: transform 0.2s;
+    }
+    .hand-section-head.open::after {
+        transform: rotate(90deg);
+    }
+    .hand-section-body {
+        display: none;
+    }
+    .hand-section-body.open {
+        display: block;
+    }
+
+    .hand-row {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        font-size: 13px;
+        border-top: 1px solid #eee;
+    }
+    .hand-name {
+        flex: 1;
+        min-width: 0;
+    }
+    .hand-val {
+        color: #999;
+        font-size: 11px;
+        margin-right: 8px;
+        white-space: nowrap;
+    }
+
+    .qty-ctrl {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .qty-btn {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f8f8;
+        border: none;
+        font-size: 16px;
+        font-weight: bold;
+        color: #555;
+        cursor: pointer;
+        padding: 0;
+    }
+    .qty-btn:active { background: #ddd; }
+    .qty-num {
+        width: 26px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: bold;
+        color: #222;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        line-height: 30px;
+    }
+    .qty-num.has-val { color: #b32424; }
+
+    .summary-row {
+        display: flex;
+        gap: 10px;
+    }
+    .summary-box { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .summary-box label {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #555;
+        letter-spacing: 0.3px;
+    }
+    .summary-val {
+        height: 40px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #f8f8f8;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #222;
+    }
+
+    .winner-only-section { display: none; }
+    .seat-scorer.is-winner .winner-only-section { display: block; }
+
+    /* Table responsive wrapper */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    table {
+        width: 100%;
+        min-width: 360px;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        text-align: center;
+        padding: 12px 4px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        color: #444;
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+
+    td:first-child {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        width: 14%;
+        color: #444;
+    }
+
+    .pay-col { width: 17%; }
+
+    .net-col {
+        background-color: #fdf2f2;
+        font-weight: bold;
+        width: 18%;
+        border-left: 2px solid #b32424;
+    }
+
+    th.net-col {
+        background-color: #b32424 !important;
+        color: #fff;
+        border: 2px solid #b32424;
+    }
+
+    .diagonal {
+        background-color: #eaeaea !important;
+        color: #999;
+    }
+
+    .pos-val { color: #2e7d32; font-weight: bold; }
+    .neg-val { color: #c62828; font-weight: bold; }
+    .zero-val { color: #888; }
+
+    .action-bar {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .btn {
+        background: #b32424;
+        color: #fff;
+        border: none;
+        padding: 0 24px;
+        height: 44px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        box-shadow: 0 2px 4px rgba(179, 36, 36, 0.3);
+    }
+    .btn:active { background: #911d1d; transform: translateY(1px); }
+
+    /* Phone: turn the payout matrix into a single Net Result Summary card */
+    @media (max-width: 560px) {
+        .table-responsive {
+            overflow-x: visible;
+            border: none;
+            border-radius: 0;
+            margin-bottom: 16px;
+        }
+
+        table { display: block; min-width: 0; border: none; font-size: 15px; }
+        thead { display: none; }
+
+        tbody {
+            display: block;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        tbody::before {
+            content: "Net Results";
+            display: block;
+            background-color: #b32424;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 14px;
+        }
+
+        tr {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+        tr:last-child {
+            border-bottom: none;
+        }
+
+        td.player-name {
+            display: block;
+            width: auto;
+            text-align: left;
+            background: none;
+            color: #333;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 14px;
+            border: none;
+        }
+        td.player-name::before { content: none; }
+
+        td {
+            display: block;
+            width: auto;
+            padding: 12px 14px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        td::before { content: none; }
+
+        td:not(.player-name):not(.net-col) {
+            display: none;
+        }
+
+        td.net-col {
+            display: block;
+            width: auto;
+            background: none;
+            border: none;
+            font-size: 16px;
+            text-align: right;
+        }
+    }
+
+    /* Desktop overrides */
+    @media (min-width: 650px) {
+        .meta-inputs { grid-template-columns: 1fr 1fr; gap: 24px; flex: 1 1 360px; max-width: 560px; }
+        .scores-container { grid-template-columns: 1fr 1fr; }
+        .header { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 24px 32px; }
+        .title-grid-table { flex: 0 0 auto; }
+    }
+
+    /* Wide screens: all four seat scorers in one row */
+    @media (min-width: 1000px) {
+        .scores-container { grid-template-columns: repeat(4, 1fr); }
+    }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <div id="lobby" class="lobby-panel">
+        <div class="title-grid-table" style="margin-bottom: 4px;">
+            <div class="title-icon">🀄</div>
+            <div class="title-line1">Chinese Classical (Shared)</div>
+        </div>
+
+        <div class="lobby-box" id="lobby-create-join">
+            <h3>Create a Game</h3>
+            <button class="btn" onclick="createGame()">Create New Game</button>
+            <h3 style="margin-top: 10px;">Join a Game</h3>
+            <input class="lobby-input" id="join-code-input" placeholder="ROOM CODE" maxlength="6">
+            <button class="btn" onclick="joinGameFromInput()">Join Game</button>
+            <div class="lobby-error" id="lobby-error"></div>
+        </div>
+
+        <div class="lobby-box hidden-element" id="lobby-seat-picker">
+            <h3>Room <span id="lobby-room-code"></span> — Pick Your Seat</h3>
+            <div class="lobby-link-box">
+                <input id="lobby-share-link" readonly>
+                <button class="btn" style="padding:0 14px;" onclick="copyShareLink()">Copy</button>
+            </div>
+            <div class="seat-pick-grid" id="seat-pick-grid"></div>
+            <div class="lobby-error" id="seat-pick-error"></div>
+        </div>
+    </div>
+
+    <div id="game-view" class="hidden-element">
+    <div class="header">
+        <div class="title-grid-table">
+            <div class="title-icon">🀄</div>
+            <div class="title-line1">Chinese Classical</div>
+            <span class="seat-tag" id="my-seat-label" style="margin-left:10px; color:#185fa5;"></span>
+        </div>
+
+        <div class="meta-inputs">
+            <div class="meta-group">
+                <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
+                    <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
+                        <option value="NONE">Wall</option>
+                        <option value="EAST">East</option>
+                        <option value="SOUTH">South</option>
+                        <option value="WEST">West</option>
+                        <option value="NORTH">North</option>
+                    </select>
+                </div>
+                <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
+                    <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled>
+                    </select>
+                </div>
+            </div>
+
+            <div class="meta-group">
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores(); pushRuleChange();">
+                    Enable East Doubling
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
+                    Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
+                    Discarder Pays All
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="other-seats-status" id="other-seats-status"></div>
+
+    <div class="scores-container" id="scores-container">
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+            <tr>
+                <th>Player</th>
+                <th class="pay-col">vs EAST</th>
+                <th class="pay-col">vs SOUTH</th>
+                <th class="pay-col">vs WEST</th>
+                <th class="pay-col">vs NORTH</th>
+                <th class="net-col">NET RESULT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr id="row-EAST">
+                <td class="player-name">East</td>
+                <td class="diagonal" data-label="vs East">X</td>
+                <td id="cell-EAST-SOUTH" data-label="vs South">0</td>
+                <td id="cell-EAST-WEST" data-label="vs West">0</td>
+                <td id="cell-EAST-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-EAST" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-SOUTH">
+                <td class="player-name">South</td>
+                <td id="cell-SOUTH-EAST" data-label="vs East">0</td>
+                <td class="diagonal" data-label="vs South">X</td>
+                <td id="cell-SOUTH-WEST" data-label="vs West">0</td>
+                <td id="cell-SOUTH-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-SOUTH" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-WEST">
+                <td class="player-name">West</td>
+                <td id="cell-WEST-EAST" data-label="vs East">0</td>
+                <td id="cell-WEST-SOUTH" data-label="vs South">0</td>
+                <td class="diagonal" data-label="vs West">X</td>
+                <td id="cell-WEST-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-WEST" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-NORTH">
+                <td class="player-name">North</td>
+                <td id="cell-NORTH-EAST" data-label="vs East">0</td>
+                <td id="cell-NORTH-SOUTH" data-label="vs South">0</td>
+                <td id="cell-NORTH-WEST" data-label="vs West">0</td>
+                <td class="diagonal" data-label="vs North">X</td>
+                <td class="net-col" id="net-NORTH" data-label="Net Result">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="action-bar" style="gap: 10px; flex-wrap: wrap;">
+        <button class="btn" id="submit-hand-btn" onclick="submitHand()">Submit My Hand</button>
+        <button class="btn hidden-element" id="next-hand-btn" style="background:#2e7d32;" onclick="startNextHand()">Start Next Hand</button>
+        <button class="btn" style="background:#777;" onclick="clearMyHand()">Clear My Hand</button>
+        <button class="btn" style="background:#444;" onclick="endGame()">End Game</button>
+    </div>
+    </div><!-- /game-view -->
+</div>
+
+<div class="sync-toast" id="sync-toast"></div>
+
+<script>
+// --- Supabase config -------------------------------------------------
+// TODO_FILL_IN: replace with your real Supabase project URL + anon public
+// key (Project Settings -> API). See SUPABASE_SETUP.md in the repo root
+// for full setup steps (schema, RLS policies, enabling Realtime).
+const SUPABASE_URL = 'TODO_FILL_IN_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'TODO_FILL_IN_SUPABASE_ANON_KEY';
+
+let supabaseClient = null;
+let supabaseConfigured = false;
+try {
+    if (SUPABASE_URL && SUPABASE_URL.indexOf('TODO_FILL_IN') === -1 &&
+        SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf('TODO_FILL_IN') === -1 &&
+        window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseConfigured = true;
+    }
+} catch (e) {
+    console.error('Supabase client init failed', e);
+}
+
+// --- Multi-device session state ---------------------------------------
+const seats = ['EAST', 'SOUTH', 'WEST', 'NORTH'];
+
+let currentGame = null;      // { id, room_code, rules, current_hand_id, status }
+let currentHand = null;      // { id, hand_number, winner_seat, discarded_by, status }
+let mySeat = null;           // 'EAST' | 'SOUTH' | 'WEST' | 'NORTH'
+let deviceToken = null;
+let remoteSelections = {};   // { SEAT: { miniPts, doubles, limitPts } } for seats other than mySeat
+let submittedSeats = {};     // { SEAT: true } for seats that have submitted this hand
+let handChannel = null;
+let gameChannel = null;
+let applyingRemoteRuleChange = false; // re-entrancy guard while applying incoming rule/hand updates
+
+function getOrCreateDeviceToken() {
+    let token = localStorage.getItem('mahjong_device_token');
+    if (!token) {
+        token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)));
+        localStorage.setItem('mahjong_device_token', token);
+    }
+    return token;
+}
+
+function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I to avoid confusion
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+function showSyncToast(message) {
+    const toast = document.getElementById('sync-toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showSyncToast._t);
+    showSyncToast._t = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function saveLocalSession() {
+    localStorage.setItem('mahjong_current_session', JSON.stringify({
+        roomCode: currentGame.room_code,
+        gameId: currentGame.id,
+        seat: mySeat,
+        deviceToken
+    }));
+}
+
+function loadLocalSession() {
+    try {
+        const raw = localStorage.getItem('mahjong_current_session');
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearLocalSession() {
+    localStorage.removeItem('mahjong_current_session');
+}
+
+const HAND_SECTIONS = [
+    {
+        id: 'limit',
+        label: 'Limit Hands',
+        winnerOnly: true,
+        items: [
+            { name: 'Three Big Dragons',  type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Thirteen Orphans',   type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Four Big Winds',     type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Nine Gates',         type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Blessing of Heaven', type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Blessing of Earth',  type: 'limit', value: 150, max: 1, ui: 'checkbox', radioGroup: 'limit' }
+        ]
+    },
+    {
+        id: 'doubles',
+        label: 'Doubles',
+        winnerOnly: false,
+        items: [
+            { name: 'Dragon Pung or Kong',      type: 'dbl', value: 1, max: 3, ui: 'stepper' },
+            { name: 'Seat Wind Pung or Kong',   type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Round Wind Pung or Kong',  type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Seat Flower and Season',   type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Half Flush',               type: 'dbl', value: 1, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'Pure Flush',               type: 'dbl', value: 3, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'All Honors',               type: 'dbl', value: 3, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'All Four Flowers',         type: 'dbl', value: 3, max: 1, ui: 'checkbox' },
+            { name: 'All Four Seasons',         type: 'dbl', value: 3, max: 1, ui: 'checkbox' }
+        ]
+    },
+    {
+        id: 'mini',
+        label: 'Mini Points',
+        winnerOnly: false,
+        items: [
+            { name: 'Pung of Simples',              type: 'pts', value: 2,  max: 4 },
+            { name: 'Pung of Simples (c)',           type: 'pts', value: 4,  max: 4 },
+            { name: 'Kong of Simples',               type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Simples (c)',            type: 'pts', value: 16, max: 4 },
+            { name: 'Pung of Terminals',             type: 'pts', value: 4,  max: 4 },
+            { name: 'Pung of Terminals (c)',          type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Terminals',             type: 'pts', value: 16, max: 4 },
+            { name: 'Kong of Terminals (c)',          type: 'pts', value: 32, max: 4 },
+            { name: 'Pung of Dragons',               type: 'pts', value: 4,  max: 3 },
+            { name: 'Pung of Dragons (c)',            type: 'pts', value: 8,  max: 3 },
+            { name: 'Kong of Dragons',               type: 'pts', value: 16, max: 3 },
+            { name: 'Kong of Dragons (c)',            type: 'pts', value: 32, max: 3 },
+            { name: 'Pung of Seat/Round Winds',      type: 'pts', value: 4,  max: 2 },
+            { name: 'Pung of Seat/Round Winds (c)',   type: 'pts', value: 8,  max: 2 },
+            { name: 'Kong of Seat/Round Winds',      type: 'pts', value: 16, max: 2 },
+            { name: 'Kong of Seat/Round Winds (c)',   type: 'pts', value: 32, max: 2 },
+            { name: 'Pair of Seat/Round Winds',      type: 'pts', value: 2,  max: 2 },
+            { name: 'Pair of Dragons',               type: 'pts', value: 2,  max: 1 },
+            { name: 'Each Seat Flower or Season',    type: 'pts', value: 2,  max: 2 }
+        ]
+    },
+    {
+        id: 'mini-winner',
+        label: 'Mini Points — Winner Only',
+        winnerOnly: true,
+        items: [
+            { name: 'Base Win',              type: 'pts', value: 20, max: 1, ui: 'auto' },
+            { name: 'Pinghu',                type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'All Pungs',             type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Replacement Tile Win',  type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Last Tile Win',         type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Self-Drawn Win',        type: 'pts', value: 2,  max: 1, ui: 'auto' },
+            { name: 'Eyes Wait',             type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' },
+            { name: 'Closed Wait',           type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' },
+            { name: 'Edge Wait',             type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' }
+        ]
+    }
+];
+
+function buildSeatScorer(seat) {
+    let html = '';
+    html += `<div class="seat-scorer" id="scorer-${seat}">`;
+    html += `<div class="seat-scorer-head"><span>${seat}</span><span class="seat-tag" id="tag-${seat}"></span></div>`;
+    html += `<div class="seat-body">`;
+
+    html += `<div class="summary-row">`;
+    html += `<div class="summary-box"><label>Mini Points</label><div class="summary-val" id="sum-pts-${seat}">0</div></div>`;
+    html += `<div class="summary-box"><label>Doubles</label><div class="summary-val" id="sum-dbl-${seat}">0</div></div>`;
+    html += `</div>`;
+
+    html += `<div class="seat-total">`;
+    html += `<div class="seat-total-main"><span>Point Total</span><div class="seat-total-value"><span class="status-badge east-badge" id="east-badge-${seat}">East x2</span><span class="status-badge limit-badge" id="limit-badge-${seat}">Limit</span><span class="base-total" id="base-total-${seat}"></span><strong id="total-${seat}">0</strong></div></div>`;
+    html += `</div>`;
+
+    html += `<div class="hs-toggle" onclick="toggleHS(this)">Hand Selection</div>`;
+    html += `<div class="hs-content">`;
+
+    HAND_SECTIONS.forEach((section, si) => {
+        const woClass = section.winnerOnly ? ' winner-only-section' : '';
+        html += `<div class="hand-section${woClass}" id="section-${seat}-${section.id}">`;
+        html += `<div class="hand-section-head" onclick="toggleSection(this)">${section.label}</div>`;
+        html += `<div class="hand-section-body">`;
+
+        {
+            section.items.forEach((item, ii) => {
+                const dataId = `${seat}-${si}-${ii}`;
+
+                if (item.ui === 'checkbox' || item.ui === 'auto') {
+                    const cbLabel = item.type === 'dbl'
+                        ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                        : `${item.value} pts`;
+                    if (item.ui === 'auto') {
+                        html += `<div class="hand-row"><label class="picker-label"><input type="checkbox" id="chk-${dataId}" disabled><span class="hand-name">${item.name}</span><span class="hand-val">${cbLabel}</span></label></div>`;
+                        return;
+                    }
+                    const onchange = item.radioGroup
+                        ? `onExclusiveCheck('${seat}',${si},${ii},'${item.radioGroup}')`
+                        : `calculateScores()`;
+                    html += `<div class="hand-row"><label class="picker-label"><input type="checkbox" id="chk-${dataId}" onchange="${onchange}"><span class="hand-name">${item.name}</span><span class="hand-val">${cbLabel}</span></label></div>`;
+                    return;
+                }
+
+                const valLabel = item.type === 'dbl'
+                    ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                    : `${item.value} pts`;
+                const suffix = item.max > 1 ? ' ea' : '';
+                html += `<div class="hand-row">`;
+                html += `<span class="hand-name">${item.name}</span>`;
+                html += `<span class="hand-val">${valLabel}${suffix}</span>`;
+                html += `<div class="qty-ctrl">`;
+                html += `<button class="qty-btn" onclick="adjQty('${dataId}',-1,${item.max})">−</button>`;
+                html += `<span class="qty-num" id="qty-${dataId}">0</span>`;
+                html += `<button class="qty-btn" onclick="adjQty('${dataId}',1,${item.max})">+</button>`;
+                html += `</div></div>`;
+            });
+        }
+
+        html += `</div></div>`;
+    });
+
+    html += `</div>`; // hs-content
+    html += `</div></div>`;
+
+    return html;
+}
+
+function initSeatScorers() {
+    // Each device only renders/edits its own seat's hand-entry form.
+    const container = document.getElementById('scores-container');
+    container.innerHTML = mySeat ? buildSeatScorer(mySeat) : '';
+    renderOtherSeatsStatus();
+}
+
+function renderOtherSeatsStatus() {
+    const strip = document.getElementById('other-seats-status');
+    if (!strip) return;
+    strip.innerHTML = seats.filter(s => s !== mySeat).map(seat => {
+        const submitted = !!submittedSeats[seat];
+        return `<div class="seat-status-chip${submitted ? ' submitted' : ''}">${seat}: ${submitted ? 'Submitted ✓' : 'Waiting…'}</div>`;
+    }).join('');
+}
+
+function toggleHS(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+}
+
+function toggleSection(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+}
+
+function adjQty(dataId, delta, max) {
+    const el = document.getElementById(`qty-${dataId}`);
+    let v = parseInt(el.textContent) + delta;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.textContent = v;
+    el.classList.toggle('has-val', v > 0);
+    calculateScores();
+}
+
+function serializeSeatSelections(seat) {
+    // Raw checkbox/stepper state for one seat, in the shape Supabase's
+    // hand_submissions.selections jsonb column stores. Mirrors the DOM-id
+    // convention getSeatHandValues() walks (chk-/qty-${seat}-${si}-${ii}).
+    const checks = {};
+    const qtys = {};
+    HAND_SECTIONS.forEach((section, si) => {
+        section.items.forEach((item, ii) => {
+            if (item.ui === 'checkbox' || item.ui === 'auto') {
+                const el = document.getElementById(`chk-${seat}-${si}-${ii}`);
+                if (el && el.checked) checks[`${si}-${ii}`] = true;
+            } else {
+                const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                const v = el ? (parseInt(el.textContent) || 0) : 0;
+                if (v > 0) qtys[`${si}-${ii}`] = v;
+            }
+        });
+    });
+    return { checks, qtys };
+}
+
+function getSeatHandValues(seat, overrideValues) {
+    let miniPts = 0;
+    let doubles = 0;
+    let limitPts = 0;
+    const winner = currentHand ? currentHand.winner_seat : document.getElementById('winner-seat').value;
+
+    if (overrideValues) {
+        // Remote seat: derive sums from a stored {checks, qtys} selections blob
+        // instead of reading DOM that doesn't exist locally for this seat.
+        const { checks = {}, qtys = {} } = overrideValues;
+        HAND_SECTIONS[0].items.forEach((item, ii) => {
+            if (checks[`0-${ii}`]) limitPts = item.value;
+        });
+        HAND_SECTIONS.forEach((section, si) => {
+            if (si === 0) return;
+            if (section.winnerOnly && seat !== winner) return;
+            section.items.forEach((item, ii) => {
+                let qty = 0;
+                if (item.ui === 'checkbox' || item.ui === 'auto') {
+                    qty = checks[`${si}-${ii}`] ? 1 : 0;
+                } else {
+                    qty = qtys[`${si}-${ii}`] || 0;
+                }
+                if (qty === 0) return;
+                if (item.type === 'pts') miniPts += item.value * qty;
+                else if (item.type === 'dbl') doubles += item.value * qty;
+            });
+        });
+        return { miniPts, doubles, limitPts };
+    }
+
+    // Local seat (this device): read live DOM state.
+    // Limit hand from exclusive checkboxes
+    HAND_SECTIONS[0].items.forEach((item, ii) => {
+        const el = document.getElementById(`chk-${seat}-0-${ii}`);
+        if (el && el.checked) limitPts = item.value;
+    });
+
+    HAND_SECTIONS.forEach((section, si) => {
+        if (si === 0) return; // limit handled above
+        if (section.winnerOnly && seat !== winner) return;
+        section.items.forEach((item, ii) => {
+            let qty = 0;
+            if (item.ui === 'checkbox' || item.ui === 'auto') {
+                const el = document.getElementById(`chk-${seat}-${si}-${ii}`);
+                qty = el && el.checked ? 1 : 0;
+            } else {
+                const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                qty = el ? (parseInt(el.textContent) || 0) : 0;
+            }
+            if (qty === 0) return;
+            if (item.type === 'pts') miniPts += item.value * qty;
+            else if (item.type === 'dbl') doubles += item.value * qty;
+        });
+    });
+
+    return { miniPts, doubles, limitPts };
+}
+
+function computePointTotal(seat, winner, overrideValues) {
+    const { miniPts, doubles, limitPts } = getSeatHandValues(seat, overrideValues);
+
+    // Remote seats have no local summary-box DOM; only write through for
+    // the seat actually rendered on this device.
+    if (!overrideValues) {
+        document.getElementById(`sum-pts-${seat}`).textContent = miniPts;
+        document.getElementById(`sum-dbl-${seat}`).textContent = doubles;
+    }
+
+    let total = (limitPts > 0)
+        ? limitPts + miniPts
+        : miniPts * Math.pow(2, doubles);
+
+    const cap = 500;
+    const capped = total > cap;
+    return { total: Math.min(total, cap), rawTotal: total, capped, limitPts };
+}
+
+function updateWinnerScoringUI() {
+    const winner = document.getElementById('winner-seat').value;
+    seats.forEach(seat => {
+        const scorer = document.getElementById(`scorer-${seat}`);
+        if (seat === winner) {
+            if (scorer) scorer.classList.add('is-winner');
+        } else {
+            if (scorer) scorer.classList.remove('is-winner');
+            // Reset winner-only quantities for non-winners
+            HAND_SECTIONS.forEach((section, si) => {
+                if (!section.winnerOnly) return;
+                section.items.forEach((item, ii) => {
+                    if (item.ui === 'checkbox' || item.ui === 'auto') {
+                        const el = document.getElementById(`chk-${seat}-${si}-${ii}`);
+                        if (el) el.checked = false;
+                        return;
+                    }
+                    const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                    if (el) {
+                        el.textContent = '0';
+                        el.classList.remove('has-val');
+                    }
+                });
+            });
+        }
+    });
+    updateSeatTags();
+
+    // Auto-set Base Win for the winner (section 3, item 0)
+    seats.forEach(seat => {
+        const el = document.getElementById(`chk-${seat}-3-0`);
+        if (!el) return;
+        el.checked = (seat === winner);
+    });
+
+    updateSelfDrawnWin();
+}
+
+function updateSelfDrawnWin() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    seats.forEach(seat => {
+        const el = document.getElementById(`chk-${seat}-3-5`);
+        if (!el) return;
+        el.checked = (seat === winner && discardedBy === 'SELFDRAW');
+    });
+    calculateScores();
+    pushHandMetaChange();
+}
+
+function updateSeatTags() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    const isSelfDraw = (discardedBy === 'SELFDRAW');
+    seats.forEach(seat => {
+        const tag = document.getElementById(`tag-${seat}`);
+        const scorer = document.getElementById(`scorer-${seat}`);
+        if (!tag || !scorer) return;
+        scorer.classList.remove('is-discarder');
+        if (seat === winner) {
+            tag.textContent = '🏆 WINNER';
+        } else if (!isSelfDraw && seat === discardedBy && winner !== 'NONE') {
+            tag.textContent = '🎯 DISCARDER';
+            scorer.classList.add('is-discarder');
+        } else {
+            tag.textContent = '';
+        }
+    });
+}
+
+function updateDiscardedByDropdown() {
+    const winner = document.getElementById('winner-seat').value;
+    const select = document.getElementById('discarded-by');
+    const current = select.value;
+    select.innerHTML = '';
+
+    const sd = document.createElement('option');
+    sd.value = 'SELFDRAW';
+    sd.innerText = 'Self-Drawn';
+    select.appendChild(sd);
+
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase();
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    const valid = Array.prototype.some.call(select.options, o => o.value === current);
+    select.value = valid ? current : 'SELFDRAW';
+    select.disabled = (winner === 'NONE');
+}
+
+function onExclusiveCheck(seat, si, ii, radioGroup) {
+    HAND_SECTIONS[si].items.forEach((item, idx) => {
+        if (idx !== ii && item.radioGroup === radioGroup) {
+            const el = document.getElementById(`chk-${seat}-${si}-${idx}`);
+            if (el) el.checked = false;
+        }
+    });
+    calculateScores();
+}
+
+function onDiscarderRuleChange(which) {
+    if (which === 'double' && document.getElementById('rule-discarder-pays-double').checked) {
+        document.getElementById('rule-discarder-pays-all').checked = false;
+    } else if (which === 'all' && document.getElementById('rule-discarder-pays-all').checked) {
+        document.getElementById('rule-discarder-pays-double').checked = false;
+    }
+    calculateScores();
+    pushRuleChange();
+}
+
+function handleWinnerChange() {
+    updateWinnerScoringUI();
+    updateDiscardedByDropdown();
+    calculateScores();
+    pushHandMetaChange();
+}
+
+function calculateScores() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = (winner === 'NONE') ? 'SELFDRAW' : document.getElementById('discarded-by').value;
+    const isSelfDraw = (discardedBy === 'SELFDRAW');
+    const discarder = isSelfDraw ? '' : discardedBy;
+
+    const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
+    const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
+    const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
+
+    const baseScores = {};
+    seats.forEach(seat => {
+        // Local seat reads live DOM; other seats use whatever they've
+        // submitted via Supabase so far (zeros if nothing submitted yet).
+        const overrideValues = (seat === mySeat) ? undefined : (remoteSelections[seat] || { checks: {}, qtys: {} });
+        const { total, rawTotal, capped, limitPts } = computePointTotal(seat, winner, overrideValues);
+        baseScores[seat] = total;
+
+        // Item 1: limit hand hides doubles section
+        const doublesSection = document.getElementById(`section-${seat}-doubles`);
+        if (doublesSection) {
+            const hasLimit = limitPts > 0;
+            doublesSection.style.display = hasLimit ? 'none' : '';
+            if (hasLimit) {
+                HAND_SECTIONS[1].items.forEach((item, ii) => {
+                    if (item.ui === 'checkbox') {
+                        const el = document.getElementById(`chk-${seat}-1-${ii}`);
+                        if (el) el.checked = false;
+                    } else {
+                        const el = document.getElementById(`qty-${seat}-1-${ii}`);
+                        if (el) { el.textContent = '0'; el.classList.remove('has-val'); }
+                    }
+                });
+                document.getElementById(`sum-dbl-${seat}`).textContent = '0';
+            }
+        }
+
+
+        // Item 3: east doubling on displayed total
+        let displayTotal = total;
+        let realValue = rawTotal;
+        const cap = (seat === 'EAST' && eastDoublingEnabled) ? 1000 : 500;
+        const isEastDoubled = eastDoublingEnabled && seat === 'EAST' && winner === 'EAST';
+        if (isEastDoubled) {
+            displayTotal = Math.min(total * 2, cap);
+            realValue = rawTotal * 2;
+        }
+        const displayCapped = capped || displayTotal >= cap;
+
+        const totalEl = document.getElementById(`total-${seat}`);
+        if (totalEl) {
+            totalEl.innerText = displayTotal;
+            totalEl.classList.toggle('capped', displayCapped);
+            totalEl.title = displayCapped ? 'Capped at the point limit' : '';
+        }
+
+        const eastBadge = document.getElementById(`east-badge-${seat}`);
+        if (eastBadge) eastBadge.classList.toggle('show', isEastDoubled);
+
+        const limitBadge = document.getElementById(`limit-badge-${seat}`);
+        if (limitBadge) limitBadge.classList.toggle('show', displayCapped);
+
+        const baseTotalEl = document.getElementById(`base-total-${seat}`);
+        if (baseTotalEl) {
+            baseTotalEl.textContent = realValue.toLocaleString('en-US');
+            baseTotalEl.classList.toggle('show', displayCapped);
+        }
+    });
+
+    const matrix = {
+        EAST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        SOUTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        WEST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        NORTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 }
+    };
+
+    seats.forEach(p1 => {
+        seats.forEach(p2 => {
+            if (p1 === p2) return;
+            if (p1 === winner) return;
+
+            if (p2 === winner) {
+                let baseWinValue = baseScores[winner];
+
+                if (isSelfDraw) {
+                    let payout = baseWinValue;
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        payout *= 2;
+                    }
+                    matrix[p1][p2] = -payout;
+                    matrix[p2][p1] = payout;
+                } else if (discarderPaysAllEnabled) {
+                    if (p1 === discarder) {
+                        let totalPayout = 0;
+                        seats.forEach(loser => {
+                            if (loser === winner) return;
+                            let payout = baseWinValue;
+                            if (eastDoublingEnabled && (loser === 'EAST' || winner === 'EAST')) {
+                                payout *= 2;
+                            }
+                            totalPayout += payout;
+                        });
+                        matrix[p1][p2] = -totalPayout;
+                        matrix[p2][p1] = totalPayout;
+                    } else {
+                        matrix[p1][p2] = 0;
+                    }
+                } else if (discarderPaysDoubleEnabled) {
+                    if (p1 === discarder) {
+                        let payout = baseWinValue * 2;
+                        if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                            payout *= 2;
+                        }
+                        matrix[p1][p2] = -payout;
+                        matrix[p2][p1] = payout;
+                    } else {
+                        matrix[p1][p2] = 0;
+                    }
+                } else {
+                    let payout = baseWinValue;
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        payout *= 2;
+                    }
+                    matrix[p1][p2] = -payout;
+                    matrix[p2][p1] = payout;
+                }
+            }
+
+            else if (p2 !== winner) {
+                if (baseScores[p1] > baseScores[p2]) {
+                    let diff = baseScores[p1] - baseScores[p2];
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        diff *= 2;
+                    }
+                    matrix[p1][p2] = diff;
+                    matrix[p2][p1] = -diff;
+                }
+            }
+        });
+    });
+
+    seats.forEach(p1 => {
+        let netResult = 0;
+        seats.forEach(p2 => {
+            if (p1 === p2) return;
+
+            const cellValue = matrix[p1][p2];
+            netResult += cellValue;
+
+            const cellElement = document.getElementById(`cell-${p1}-${p2}`);
+            if (cellElement) {
+                cellElement.innerText = cellValue > 0 ? `+${cellValue}` : cellValue;
+                cellElement.className = '';
+                if (cellValue > 0) cellElement.classList.add('pos-val');
+                else if (cellValue < 0) cellElement.classList.add('neg-val');
+                else cellElement.classList.add('zero-val');
+            }
+        });
+
+        const netElement = document.getElementById(`net-${p1}`);
+        if (netElement) {
+            netElement.innerText = netResult > 0 ? `+${netResult}` : netResult;
+            netElement.className = 'net-col';
+            if (netResult > 0) netElement.classList.add('pos-val');
+            else if (netResult < 0) netElement.classList.add('neg-val');
+        }
+    });
+}
+
+function clearMyHand() {
+    if (!mySeat) return;
+    HAND_SECTIONS.forEach((section, si) => {
+        section.items.forEach((item, ii) => {
+            if (item.ui === 'checkbox' || item.ui === 'auto') {
+                const el = document.getElementById(`chk-${mySeat}-${si}-${ii}`);
+                if (el) el.checked = false;
+            } else {
+                const el = document.getElementById(`qty-${mySeat}-${si}-${ii}`);
+                if (el) { el.textContent = '0'; el.classList.remove('has-val'); }
+            }
+        });
+    });
+    calculateScores();
+}
+
+// --- Lobby: create / join / claim seat ---------------------------------
+
+function requireSupabase() {
+    if (!supabaseConfigured) {
+        document.getElementById('lobby-error').textContent =
+            'Supabase is not configured yet (placeholder credentials). See SUPABASE_SETUP.md, then fill in SUPABASE_URL/SUPABASE_ANON_KEY near the top of this file.';
+        return false;
+    }
+    return true;
+}
+
+async function createGame() {
+    document.getElementById('lobby-error').textContent = '';
+    if (!requireSupabase()) return;
+
+    const roomCode = generateRoomCode();
+    const { data, error } = await supabaseClient
+        .from('games')
+        .insert({
+            room_code: roomCode,
+            rules: {
+                eastDoublingEnabled: true,
+                discarderPaysDoubleEnabled: false,
+                discarderPaysAllEnabled: false
+            },
+            status: 'active'
+        })
+        .select()
+        .single();
+
+    if (error) {
+        document.getElementById('lobby-error').textContent = 'Could not create game: ' + error.message;
+        return;
+    }
+
+    currentGame = data;
+    history.pushState({}, '', '?room=' + roomCode);
+    showSeatPicker();
+}
+
+async function joinGameFromInput() {
+    const code = (document.getElementById('join-code-input').value || '').trim().toUpperCase();
+    if (!code) {
+        document.getElementById('lobby-error').textContent = 'Enter a room code.';
+        return;
+    }
+    await joinGame(code);
+}
+
+async function joinGame(roomCode) {
+    document.getElementById('lobby-error').textContent = '';
+    if (!requireSupabase()) return;
+
+    const { data, error } = await supabaseClient
+        .from('games')
+        .select()
+        .eq('room_code', roomCode)
+        .maybeSingle();
+
+    if (error || !data) {
+        document.getElementById('lobby-error').textContent = 'Room not found. Check the code and try again.';
+        return;
+    }
+
+    currentGame = data;
+    history.pushState({}, '', '?room=' + roomCode);
+    showSeatPicker();
+}
+
+async function showSeatPicker() {
+    document.getElementById('lobby-create-join').classList.add('hidden-element');
+    const picker = document.getElementById('lobby-seat-picker');
+    picker.classList.remove('hidden-element');
+    document.getElementById('lobby-room-code').textContent = currentGame.room_code;
+    const link = window.location.origin + window.location.pathname + '?room=' + currentGame.room_code;
+    document.getElementById('lobby-share-link').value = link;
+
+    const { data: claimedSeats } = await supabaseClient
+        .from('seats')
+        .select('seat')
+        .eq('game_id', currentGame.id);
+    const taken = new Set((claimedSeats || []).map(r => r.seat));
+
+    const grid = document.getElementById('seat-pick-grid');
+    grid.innerHTML = seats.map(seat =>
+        `<button class="seat-pick-btn" id="seat-pick-${seat}" ${taken.has(seat) ? 'disabled' : ''} onclick="claimSeat('${seat}')">${seat}${taken.has(seat) ? ' (taken)' : ''}</button>`
+    ).join('');
+}
+
+function copyShareLink() {
+    const input = document.getElementById('lobby-share-link');
+    input.select();
+    navigator.clipboard && navigator.clipboard.writeText(input.value);
+    showSyncToast('Link copied');
+}
+
+async function claimSeat(seat) {
+    document.getElementById('seat-pick-error').textContent = '';
+    deviceToken = getOrCreateDeviceToken();
+
+    const { error } = await supabaseClient
+        .from('seats')
+        .insert({ game_id: currentGame.id, seat, device_token: deviceToken });
+
+    if (error) {
+        document.getElementById('seat-pick-error').textContent =
+            'Seat taken — pick another.';
+        showSeatPicker();
+        return;
+    }
+
+    mySeat = seat;
+    saveLocalSession();
+    await enterGameView();
+}
+
+async function releaseSeat() {
+    if (!currentGame || !mySeat) return;
+    await supabaseClient.from('seats').delete()
+        .eq('game_id', currentGame.id).eq('seat', mySeat).eq('device_token', deviceToken);
+    clearLocalSession();
+    window.location.href = window.location.pathname;
+}
+
+function endGame() {
+    if (!confirm('End this game for everyone? This just closes the room; nothing is deleted.')) return;
+    supabaseClient.from('games').update({ status: 'closed' }).eq('id', currentGame.id).then(() => {
+        clearLocalSession();
+        window.location.href = window.location.pathname;
+    });
+}
+
+// --- Entering the game view + hand lifecycle ----------------------------
+
+async function ensureCurrentHand() {
+    if (currentGame.current_hand_id) {
+        const { data } = await supabaseClient.from('hands').select().eq('id', currentGame.current_hand_id).maybeSingle();
+        if (data) {
+            currentHand = data;
+            return;
+        }
+    }
+    // No active hand yet for this game — create hand #1.
+    const { data: hand, error } = await supabaseClient
+        .from('hands')
+        .insert({ game_id: currentGame.id, hand_number: 1, status: 'collecting' })
+        .select()
+        .single();
+    if (error) {
+        showSyncToast('Could not start hand: ' + error.message);
+        return;
+    }
+    currentHand = hand;
+    await supabaseClient.from('games').update({ current_hand_id: hand.id }).eq('id', currentGame.id);
+    currentGame.current_hand_id = hand.id;
+}
+
+async function startNextHand() {
+    if (!currentGame || !currentHand) return;
+    const { data: hand, error } = await supabaseClient
+        .from('hands')
+        .insert({ game_id: currentGame.id, hand_number: currentHand.hand_number + 1, status: 'collecting' })
+        .select()
+        .single();
+    if (error) {
+        showSyncToast('Could not start next hand: ' + error.message);
+        return;
+    }
+    await supabaseClient.from('games').update({ current_hand_id: hand.id }).eq('id', currentGame.id);
+    currentGame.current_hand_id = hand.id;
+    currentHand = hand;
+    remoteSelections = {};
+    submittedSeats = {};
+    clearMyHand();
+    document.getElementById('winner-seat').value = 'NONE';
+    updateWinnerScoringUI();
+    updateDiscardedByDropdown();
+    document.getElementById('submit-hand-btn').classList.remove('hidden-element');
+    document.getElementById('next-hand-btn').classList.add('hidden-element');
+    renderOtherSeatsStatus();
+    calculateScores();
+    subscribeToHand(currentHand.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function enterGameView() {
+    document.getElementById('lobby').classList.add('hidden-element');
+    document.getElementById('game-view').classList.remove('hidden-element');
+    document.getElementById('my-seat-label').textContent = '— You are ' + mySeat;
+
+    initSeatScorers();
+    updateWinnerScoringUI();
+    updateDiscardedByDropdown();
+
+    await ensureCurrentHand();
+    if (currentHand) {
+        applyHandRowToLocalUI(currentHand);
+        await fetchHandSubmissions();
+        subscribeToHand(currentHand.id);
+    }
+    if (currentGame.rules) applyRulesToLocalUI(currentGame.rules);
+    subscribeToGame(currentGame.id);
+
+    calculateScores();
+}
+
+// --- Submitting a hand ----------------------------------------------------
+
+async function submitHand() {
+    if (!currentGame || !currentHand || !mySeat) return;
+
+    // Re-verify this device still actually holds the seat before writing,
+    // in case the claim was lost/released elsewhere since page load.
+    const { data: seatRow } = await supabaseClient
+        .from('seats')
+        .select('device_token')
+        .eq('game_id', currentGame.id)
+        .eq('seat', mySeat)
+        .maybeSingle();
+    if (!seatRow || seatRow.device_token !== deviceToken) {
+        showSyncToast('This seat is held by another device — rejoin to pick a different seat.');
+        return;
+    }
+
+    const selections = serializeSeatSelections(mySeat);
+    const { error } = await supabaseClient
+        .from('hand_submissions')
+        .upsert({
+            hand_id: currentHand.id,
+            seat: mySeat,
+            device_token: deviceToken,
+            selections
+        }, { onConflict: 'hand_id,seat' });
+
+    if (error) {
+        showSyncToast('Submit failed: ' + error.message);
+        return;
+    }
+    submittedSeats[mySeat] = true;
+    renderOtherSeatsStatus();
+    showSyncToast('Hand submitted');
+    await maybeCompleteHand();
+}
+
+async function fetchHandSubmissions() {
+    if (!currentHand) return;
+    const { data } = await supabaseClient
+        .from('hand_submissions')
+        .select('seat, selections')
+        .eq('hand_id', currentHand.id);
+    remoteSelections = {};
+    submittedSeats = {};
+    (data || []).forEach(row => {
+        submittedSeats[row.seat] = true;
+        if (row.seat !== mySeat) remoteSelections[row.seat] = row.selections;
+    });
+    renderOtherSeatsStatus();
+    if (currentHand && currentHand.status === 'complete') {
+        document.getElementById('submit-hand-btn').classList.add('hidden-element');
+        document.getElementById('next-hand-btn').classList.remove('hidden-element');
+    } else {
+        document.getElementById('submit-hand-btn').classList.remove('hidden-element');
+        document.getElementById('next-hand-btn').classList.add('hidden-element');
+    }
+    calculateScores();
+}
+
+async function maybeCompleteHand() {
+    const allSubmitted = seats.every(s => submittedSeats[s]);
+    if (allSubmitted && currentHand.status !== 'complete') {
+        await supabaseClient.from('hands').update({ status: 'complete' }).eq('id', currentHand.id);
+        currentHand.status = 'complete';
+        document.getElementById('submit-hand-btn').classList.add('hidden-element');
+        document.getElementById('next-hand-btn').classList.remove('hidden-element');
+        showSyncToast('All seats submitted — results ready');
+    }
+}
+
+// --- Realtime subscriptions -----------------------------------------------
+
+function subscribeToHand(handId) {
+    if (handChannel) supabaseClient.removeChannel(handChannel);
+    handChannel = supabaseClient
+        .channel('hand-' + handId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'hand_submissions', filter: 'hand_id=eq.' + handId },
+            () => { fetchHandSubmissions(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'hands', filter: 'id=eq.' + handId },
+            (payload) => {
+                if (payload.new) {
+                    applyHandRowToLocalUI(payload.new);
+                    if (payload.new.status === 'complete') {
+                        document.getElementById('submit-hand-btn').classList.add('hidden-element');
+                        document.getElementById('next-hand-btn').classList.remove('hidden-element');
+                    }
+                }
+            })
+        .subscribe();
+}
+
+function subscribeToGame(gameId) {
+    if (gameChannel) supabaseClient.removeChannel(gameChannel);
+    gameChannel = supabaseClient
+        .channel('game-' + gameId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
+            (payload) => {
+                if (!payload.new) return;
+                currentGame = { ...currentGame, ...payload.new };
+                if (payload.new.rules) applyRulesToLocalUI(payload.new.rules);
+                // Another device started the next hand.
+                if (payload.new.current_hand_id && (!currentHand || payload.new.current_hand_id !== currentHand.id)) {
+                    loadHandById(payload.new.current_hand_id);
+                }
+            })
+        .subscribe();
+}
+
+async function loadHandById(handId) {
+    const { data } = await supabaseClient.from('hands').select().eq('id', handId).maybeSingle();
+    if (!data) return;
+    currentHand = data;
+    remoteSelections = {};
+    submittedSeats = {};
+    clearMyHand();
+    applyHandRowToLocalUI(data);
+    document.getElementById('submit-hand-btn').classList.remove('hidden-element');
+    document.getElementById('next-hand-btn').classList.add('hidden-element');
+    await fetchHandSubmissions();
+    subscribeToHand(handId);
+    showSyncToast('New hand started');
+}
+
+// --- Applying remote rule / winner / discarded-by changes locally ---------
+
+function applyRulesToLocalUI(rules) {
+    applyingRemoteRuleChange = true;
+    const eastEl = document.getElementById('rule-east-doubling');
+    const dblEl = document.getElementById('rule-discarder-pays-double');
+    const allEl = document.getElementById('rule-discarder-pays-all');
+    if (eastEl && rules.eastDoublingEnabled !== undefined) eastEl.checked = rules.eastDoublingEnabled;
+    if (dblEl && rules.discarderPaysDoubleEnabled !== undefined) dblEl.checked = rules.discarderPaysDoubleEnabled;
+    if (allEl && rules.discarderPaysAllEnabled !== undefined) allEl.checked = rules.discarderPaysAllEnabled;
+    applyingRemoteRuleChange = false;
+    calculateScores();
+}
+
+function applyHandRowToLocalUI(hand) {
+    applyingRemoteRuleChange = true;
+    const winnerEl = document.getElementById('winner-seat');
+    if (winnerEl && hand.winner_seat) winnerEl.value = hand.winner_seat;
+    updateWinnerScoringUI();
+    updateDiscardedByDropdown();
+    const discardedEl = document.getElementById('discarded-by');
+    if (discardedEl && hand.discarded_by) discardedEl.value = hand.discarded_by;
+    applyingRemoteRuleChange = false;
+    calculateScores();
+}
+
+async function pushRuleChange() {
+    if (applyingRemoteRuleChange || !currentGame) return;
+    const rules = {
+        eastDoublingEnabled: document.getElementById('rule-east-doubling').checked,
+        discarderPaysDoubleEnabled: document.getElementById('rule-discarder-pays-double').checked,
+        discarderPaysAllEnabled: document.getElementById('rule-discarder-pays-all').checked
+    };
+    currentGame.rules = rules;
+    if (supabaseConfigured && currentGame.id) {
+        await supabaseClient.from('games').update({ rules }).eq('id', currentGame.id);
+    }
+}
+
+async function pushHandMetaChange() {
+    if (applyingRemoteRuleChange || !currentHand) return;
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    currentHand.winner_seat = winner;
+    currentHand.discarded_by = discardedBy;
+    if (supabaseConfigured && currentHand.id) {
+        await supabaseClient.from('hands').update({ winner_seat: winner, discarded_by: discardedBy }).eq('id', currentHand.id);
+    }
+}
+
+window.onload = async function() {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get('room');
+    deviceToken = getOrCreateDeviceToken();
+
+    if (!supabaseConfigured) {
+        document.getElementById('lobby-error').textContent =
+            'Supabase is not configured yet — this is a placeholder build. See SUPABASE_SETUP.md, then fill in SUPABASE_URL/SUPABASE_ANON_KEY near the top of the <script> block in this file.';
+    }
+
+    const saved = loadLocalSession();
+    if (supabaseConfigured && saved && (!urlRoom || urlRoom === saved.roomCode)) {
+        // Auto-rejoin: verify the saved seat claim is still ours.
+        const { data: game } = await supabaseClient.from('games').select().eq('id', saved.gameId).maybeSingle();
+        const { data: seatRow } = game ? await supabaseClient.from('seats').select().eq('game_id', saved.gameId).eq('seat', saved.seat).maybeSingle() : { data: null };
+        if (game && seatRow && seatRow.device_token === saved.deviceToken) {
+            currentGame = game;
+            mySeat = saved.seat;
+            history.replaceState({}, '', '?room=' + game.room_code);
+            await enterGameView();
+            return;
+        }
+        clearLocalSession();
+    }
+
+    if (supabaseConfigured && urlRoom) {
+        await joinGame(urlRoom);
+    }
+    // Otherwise: leave the create/join lobby panel showing.
+};
+</script>
+
+</body>
+</html>
