@@ -250,6 +250,61 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
+    .hand-info-card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .hand-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+    }
+    .hand-info-row + .hand-info-row {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 6px;
+    }
+    .hand-info-label { color: #888; }
+    .hand-info-value { font-weight: 600; color: #222; }
+    .results-banner {
+        background: #f2f2f2;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .results-banner-title {
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #444;
+    }
+    .results-banner-sub {
+        font-size: 12px;
+        color: #888;
+        margin-top: 2px;
+    }
+
+    .room-code-badge {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        background: #e8f0fb;
+        color: #185fa5;
+        padding: 3px 10px;
+        border-radius: 6px;
+    }
+
     .seat-scorer-head {
         background: #b32424;
         color: #fff;
@@ -656,6 +711,23 @@
     @media (min-width: 1000px) {
         .scores-container { grid-template-columns: repeat(4, 1fr); }
     }
+
+    /* Shared scorer: single seat always fills full width */
+    #game-view .scores-container { grid-template-columns: 1fr; }
+
+    .submitted-badge {
+        display: none;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    .submitted-badge.show { display: inline-block; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -723,39 +795,52 @@
     </div>
 
     <div id="game-view" class="hidden-element">
-    <div class="header">
+    <div class="header" style="align-items:center;">
         <div class="title-grid-table">
             <div class="title-icon">🀄</div>
             <div class="title-line1">Chinese Classical</div>
-            <span class="seat-tag" id="my-seat-label" style="margin-left:10px; color:#185fa5;"></span>
         </div>
+        <span class="room-code-badge" id="room-code-badge"></span>
+    </div>
 
+    <!-- Hidden selects kept in DOM so calculateScores/handleWinnerChange/etc. still work -->
+    <select id="winner-seat" class="hidden-element" onchange="handleWinnerChange()">
+        <option value="NONE">Wall</option>
+        <option value="EAST">East</option>
+        <option value="SOUTH">South</option>
+        <option value="WEST">West</option>
+        <option value="NORTH">North</option>
+    </select>
+    <select id="discarded-by" class="hidden-element" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled></select>
+
+    <div class="hand-info-card" id="hand-info-card">
+        <div class="hand-info-row">
+            <span class="hand-info-label">You are</span>
+            <span class="hand-info-value" id="my-seat-label"></span>
+        </div>
+        <div class="hand-info-row">
+            <span class="hand-info-label">Winner</span>
+            <span class="hand-info-value" id="label-winner-seat">—</span>
+        </div>
+        <div class="hand-info-row">
+            <span class="hand-info-label">Discarded by</span>
+            <span class="hand-info-value" id="label-discarded-by">—</span>
+        </div>
     </div>
 
     <div class="other-seats-status" id="other-seats-status"></div>
 
-    <div class="meta-inputs" style="margin-bottom: 14px;">
-        <div class="meta-group">
-            <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
-                <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
-                    <option value="NONE">Wall</option>
-                    <option value="EAST">East</option>
-                    <option value="SOUTH">South</option>
-                    <option value="WEST">West</option>
-                    <option value="NORTH">North</option>
-                </select>
-            </div>
-            <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
-                <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled>
-                </select>
-            </div>
-        </div>
-    </div>
-
     <div class="scores-container" id="scores-container">
     </div>
 
-    <div class="table-responsive">
+    <div class="results-banner hidden-element" id="results-banner">
+        <div>
+            <div class="results-banner-title">Final Results</div>
+            <div class="results-banner-sub" id="results-banner-sub"></div>
+        </div>
+    </div>
+
+    <div class="table-responsive hidden-element" id="table-responsive">
         <table>
             <thead>
             <tr>
@@ -973,7 +1058,7 @@ const HAND_SECTIONS = [
 function buildSeatScorer(seat) {
     let html = '';
     html += `<div class="seat-scorer" id="scorer-${seat}">`;
-    html += `<div class="seat-scorer-head"><span>${seat}</span><span class="seat-tag" id="tag-${seat}"></span></div>`;
+    html += `<div class="seat-scorer-head"><span>${seat}</span><span class="submitted-badge" id="submitted-badge-${seat}">Submitted</span><span class="seat-tag" id="tag-${seat}"></span></div>`;
     html += `<div class="seat-body">`;
 
     html += `<div class="summary-row">`;
@@ -1218,6 +1303,7 @@ function updateSelfDrawnWin() {
         if (!el) return;
         el.checked = (seat === winner && discardedBy === 'SELFDRAW');
     });
+    updateHandLabels();
     calculateScores();
     pushHandMetaChange();
 }
@@ -1289,9 +1375,21 @@ function onDiscarderRuleChange(which) {
     pushRuleChange();
 }
 
+function updateHandLabels() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    const winnerLabel = document.getElementById('label-winner-seat');
+    const discardedByLabel = document.getElementById('label-discarded-by');
+    const winnerNames = { NONE: 'Wall (no winner)', EAST: 'East', SOUTH: 'South', WEST: 'West', NORTH: 'North' };
+    const discardedByNames = { SELFDRAW: 'Self-drawn', EAST: 'East', SOUTH: 'South', WEST: 'West', NORTH: 'North' };
+    if (winnerLabel) winnerLabel.textContent = winnerNames[winner] || winner;
+    if (discardedByLabel) discardedByLabel.textContent = winner === 'NONE' ? '—' : (discardedByNames[discardedBy] || discardedBy);
+}
+
 function handleWinnerChange() {
     updateWinnerScoringUI();
     updateDiscardedByDropdown();
+    updateHandLabels();
     calculateScores();
     pushHandMetaChange();
 }
@@ -1627,11 +1725,25 @@ async function releaseSeat() {
     window.location.href = window.location.pathname;
 }
 
+function showResultsView() {
+    clearLocalSession();
+    const tableEl = document.getElementById('table-responsive');
+    if (tableEl) tableEl.classList.remove('hidden-element');
+    ['hand-info-card', 'other-seats-status', 'scores-container', 'submit-hand-btn', 'next-hand-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden-element');
+    });
+    document.querySelectorAll('.action-bar .btn').forEach(btn => btn.classList.add('hidden-element'));
+    const banner = document.getElementById('results-banner');
+    if (banner) banner.classList.remove('hidden-element');
+    const sub = document.getElementById('results-banner-sub');
+    if (sub && currentGame) sub.textContent = 'Room ' + currentGame.room_code;
+}
+
 function endGame() {
-    if (!confirm('End this game for everyone? This just closes the room; nothing is deleted.')) return;
+    if (!confirm('End this game for everyone?')) return;
     supabaseClient.from('games').update({ status: 'closed' }).eq('id', currentGame.id).then(() => {
-        clearLocalSession();
-        window.location.href = window.location.pathname;
+        showResultsView();
     });
 }
 
@@ -1677,9 +1789,11 @@ async function startNextHand() {
     remoteSelections = {};
     submittedSeats = {};
     clearMyHand();
+    resetHandUI();
     document.getElementById('winner-seat').value = 'NONE';
     updateWinnerScoringUI();
     updateDiscardedByDropdown();
+    updateHandLabels();
     document.getElementById('submit-hand-btn').classList.remove('hidden-element');
     document.getElementById('next-hand-btn').classList.add('hidden-element');
     renderOtherSeatsStatus();
@@ -1691,11 +1805,14 @@ async function startNextHand() {
 async function enterGameView() {
     document.getElementById('lobby').classList.add('hidden-element');
     document.getElementById('game-view').classList.remove('hidden-element');
-    document.getElementById('my-seat-label').textContent = '— You are ' + mySeat;
+    document.getElementById('my-seat-label').textContent = mySeat.charAt(0) + mySeat.slice(1).toLowerCase();
+    const badge = document.getElementById('room-code-badge');
+    if (badge && currentGame) badge.textContent = currentGame.room_code;
 
     initSeatScorers();
     updateWinnerScoringUI();
     updateDiscardedByDropdown();
+    updateHandLabels();
 
     // If the creator set a winner/discarded-by in the lobby, apply it now
     // that the game-view dropdown is populated.
@@ -1715,6 +1832,8 @@ async function enterGameView() {
     subscribeToGame(currentGame.id);
 
     calculateScores();
+
+    if (currentGame.status === 'closed') { showResultsView(); return; }
 }
 
 // --- Submitting a hand ----------------------------------------------------
@@ -1749,10 +1868,41 @@ async function submitHand() {
         showSyncToast('Submit failed: ' + error.message);
         return;
     }
-    submittedSeats[mySeat] = true;
-    renderOtherSeatsStatus();
     showSyncToast('Hand submitted');
+    // Fetch immediately so the submitting player sees updated state (other
+    // seats' scores, completion) without waiting for the Realtime echo.
+    await fetchHandSubmissions();
     await maybeCompleteHand();
+}
+
+function markMyHandSubmitted() {
+    // Show payout grid.
+    const table = document.getElementById('table-responsive');
+    if (table) table.classList.remove('hidden-element');
+    // Badge + collapse hand selection on this seat's scorer card.
+    const badge = document.getElementById(`submitted-badge-${mySeat}`);
+    if (badge) badge.classList.add('show');
+    const hsToggle = document.querySelector(`#scorer-${mySeat} .hs-toggle`);
+    const hsContent = document.querySelector(`#scorer-${mySeat} .hs-content`);
+    if (hsToggle) { hsToggle.classList.remove('open'); hsToggle.style.display = 'none'; }
+    if (hsContent) { hsContent.classList.remove('open'); hsContent.style.display = 'none'; }
+    // Disable submit button and update its label.
+    const submitBtn = document.getElementById('submit-hand-btn');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Waiting for other players…'; }
+}
+
+function resetHandUI() {
+    // Called at the start of each new hand.
+    const table = document.getElementById('table-responsive');
+    if (table) table.classList.add('hidden-element');
+    const badge = document.getElementById(`submitted-badge-${mySeat}`);
+    if (badge) badge.classList.remove('show');
+    const hsToggle = document.querySelector(`#scorer-${mySeat} .hs-toggle`);
+    const hsContent = document.querySelector(`#scorer-${mySeat} .hs-content`);
+    if (hsToggle) hsToggle.style.display = '';
+    if (hsContent) hsContent.style.display = '';
+    const submitBtn = document.getElementById('submit-hand-btn');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit My Hand'; }
 }
 
 async function fetchHandSubmissions() {
@@ -1768,6 +1918,7 @@ async function fetchHandSubmissions() {
         if (row.seat !== mySeat) remoteSelections[row.seat] = row.selections;
     });
     renderOtherSeatsStatus();
+    if (submittedSeats[mySeat]) markMyHandSubmitted();
     if (currentHand && currentHand.status === 'complete') {
         document.getElementById('submit-hand-btn').classList.add('hidden-element');
         document.getElementById('next-hand-btn').classList.remove('hidden-element');
@@ -1818,6 +1969,7 @@ function subscribeToGame(gameId) {
             (payload) => {
                 if (!payload.new) return;
                 currentGame = { ...currentGame, ...payload.new };
+                if (payload.new.status === 'closed') { showResultsView(); return; }
                 if (payload.new.rules) applyRulesToLocalUI(payload.new.rules);
                 // Another device started the next hand.
                 if (payload.new.current_hand_id && (!currentHand || payload.new.current_hand_id !== currentHand.id)) {
@@ -1834,6 +1986,7 @@ async function loadHandById(handId) {
     remoteSelections = {};
     submittedSeats = {};
     clearMyHand();
+    resetHandUI();
     applyHandRowToLocalUI(data);
     document.getElementById('submit-hand-btn').classList.remove('hidden-element');
     document.getElementById('next-hand-btn').classList.add('hidden-element');
@@ -1865,6 +2018,7 @@ function applyHandRowToLocalUI(hand) {
     const discardedEl = document.getElementById('discarded-by');
     if (discardedEl && hand.discarded_by) discardedEl.value = hand.discarded_by;
     applyingRemoteRuleChange = false;
+    updateHandLabels();
     calculateScores();
 }
 
