@@ -1740,11 +1740,10 @@ function showResultsView() {
     if (sub && currentGame) sub.textContent = 'Room ' + currentGame.room_code;
 }
 
-function endGame() {
+async function endGame() {
     if (!confirm('End this game for everyone?')) return;
-    supabaseClient.from('games').update({ status: 'closed' }).eq('id', currentGame.id).then(() => {
-        showResultsView();
-    });
+    await supabaseClient.from('games').update({ status: 'closed' }).eq('id', currentGame.id);
+    showResultsView();
 }
 
 // --- Entering the game view + hand lifecycle ----------------------------
