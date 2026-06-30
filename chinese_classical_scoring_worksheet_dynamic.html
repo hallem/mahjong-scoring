@@ -161,18 +161,25 @@
     }
 
     .seat-total {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
         border-top: 2px solid #b32424;
         padding-top: 8px;
     }
-    .seat-total span {
+    .seat-total-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+    .seat-total-main > span {
         font-size: 11px;
         font-weight: bold;
         text-transform: uppercase;
         color: #b32424;
         letter-spacing: 0.3px;
+    }
+    .seat-total-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
     }
     .seat-total strong { font-size: 20px; color: #222; }
     .seat-total strong.capped { color: #b32424; }
@@ -214,6 +221,39 @@
         margin-bottom: 8px;
         overflow: hidden;
     }
+
+    .picker-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        cursor: pointer;
+    }
+    .picker-label input[type="radio"],
+    .picker-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #b32424;
+        flex-shrink: 0;
+        margin: 0;
+    }
+
+    .status-badge {
+        display: none;
+        font-size: 9px;
+        font-weight: 700;
+        color: #fff;
+        padding: 2px 5px;
+        border-radius: 4px;
+        vertical-align: middle;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    .status-badge.show { display: inline-block; }
+    .limit-badge { background: #b32424; }
+    .east-badge { background: #185fa5; }
+    .base-total { display: none; font-size: 13px; color: #888; }
+    .base-total.show { display: inline-block; }
     .hand-section-head {
         display: flex;
         align-items: center;
@@ -524,7 +564,7 @@
                     </select>
                 </div>
                 <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
-                    <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); calculateScores()" disabled>
+                    <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled>
                     </select>
                 </div>
             </div>
@@ -612,12 +652,12 @@ const HAND_SECTIONS = [
         label: 'Limit Hands',
         winnerOnly: true,
         items: [
-            { name: 'Blessing of Earth',  type: 'limit', value: 150, max: 1 },
-            { name: 'Blessing of Heaven', type: 'limit', value: 300, max: 1 },
-            { name: 'Three Big Dragons',  type: 'limit', value: 300, max: 1 },
-            { name: 'Thirteen Orphans',   type: 'limit', value: 300, max: 1 },
-            { name: 'Four Big Winds',     type: 'limit', value: 300, max: 1 },
-            { name: 'Nine Gates',         type: 'limit', value: 300, max: 1 }
+            { name: 'Three Big Dragons',  type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Thirteen Orphans',   type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Four Big Winds',     type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Nine Gates',         type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Blessing of Heaven', type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Blessing of Earth',  type: 'limit', value: 150, max: 1, ui: 'checkbox', radioGroup: 'limit' }
         ]
     },
     {
@@ -625,15 +665,15 @@ const HAND_SECTIONS = [
         label: 'Doubles',
         winnerOnly: false,
         items: [
-            { name: 'Dragon Pung or Kong',       type: 'dbl', value: 1, max: 3 },
-            { name: 'Seat Wind Pung or Kong',     type: 'dbl', value: 1, max: 1 },
-            { name: 'Round Wind Pung or Kong',    type: 'dbl', value: 1, max: 1 },
-            { name: 'Seat Flower and Season',     type: 'dbl', value: 1, max: 2 },
-            { name: 'Half Flush',                 type: 'dbl', value: 1, max: 1 },
-            { name: 'Pure Flush',                 type: 'dbl', value: 3, max: 1 },
-            { name: 'All Honors',                 type: 'dbl', value: 3, max: 1 },
-            { name: 'All Four Flowers',           type: 'dbl', value: 3, max: 1 },
-            { name: 'All Four Seasons',           type: 'dbl', value: 3, max: 1 }
+            { name: 'Dragon Pung or Kong',      type: 'dbl', value: 1, max: 3, ui: 'stepper' },
+            { name: 'Seat Wind Pung or Kong',   type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Round Wind Pung or Kong',  type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Seat Flower and Season',   type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Half Flush',               type: 'dbl', value: 1, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'Pure Flush',               type: 'dbl', value: 3, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'All Honors',               type: 'dbl', value: 3, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'All Four Flowers',         type: 'dbl', value: 3, max: 1, ui: 'checkbox' },
+            { name: 'All Four Seasons',         type: 'dbl', value: 3, max: 1, ui: 'checkbox' }
         ]
     },
     {
@@ -667,15 +707,15 @@ const HAND_SECTIONS = [
         label: 'Mini Points — Winner Only',
         winnerOnly: true,
         items: [
-            { name: 'Base Win',              type: 'pts', value: 20, max: 1 },
-            { name: 'Pinghu',                type: 'pts', value: 10, max: 1 },
-            { name: 'All Pungs',             type: 'pts', value: 10, max: 1 },
-            { name: 'Replacement Tile Win',  type: 'pts', value: 10, max: 1 },
-            { name: 'Last Tile Win',         type: 'pts', value: 10, max: 1 },
-            { name: 'Self-Drawn Win',        type: 'pts', value: 2,  max: 1 },
-            { name: 'Eyes Wait',             type: 'pts', value: 2,  max: 1 },
-            { name: 'Closed Wait',           type: 'pts', value: 2,  max: 1 },
-            { name: 'Edge Wait',             type: 'pts', value: 2,  max: 1 }
+            { name: 'Base Win',              type: 'pts', value: 20, max: 1, ui: 'auto' },
+            { name: 'Pinghu',                type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'All Pungs',             type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Replacement Tile Win',  type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Last Tile Win',         type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Self-Drawn Win',        type: 'pts', value: 2,  max: 1, ui: 'auto' },
+            { name: 'Eyes Wait',             type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' },
+            { name: 'Closed Wait',           type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' },
+            { name: 'Edge Wait',             type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' }
         ]
     }
 ];
@@ -686,43 +726,62 @@ function buildSeatScorer(seat) {
     html += `<div class="seat-scorer-head"><span>${seat}</span><span class="seat-tag" id="tag-${seat}"></span></div>`;
     html += `<div class="seat-body">`;
 
-    html += `<div class="hs-toggle" onclick="toggleHS(this)">Hand Selection</div>`;
-    html += `<div class="hs-content">`;
-
-    HAND_SECTIONS.forEach((section, si) => {
-        const woClass = section.winnerOnly ? ' winner-only-section' : '';
-        html += `<div class="hand-section${woClass}">`;
-        html += `<div class="hand-section-head" onclick="toggleSection(this)">${section.label}</div>`;
-        html += `<div class="hand-section-body">`;
-
-        section.items.forEach((item, ii) => {
-            const dataId = `${seat}-${si}-${ii}`;
-            const valLabel = item.type === 'dbl'
-                ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
-                : `${item.value} pts`;
-            const suffix = item.max > 1 ? ' ea' : '';
-
-            html += `<div class="hand-row">`;
-            html += `<span class="hand-name">${item.name}</span>`;
-            html += `<span class="hand-val">${valLabel}${suffix}</span>`;
-            html += `<div class="qty-ctrl">`;
-            html += `<button class="qty-btn" onclick="adjQty('${dataId}',-1,${item.max})">−</button>`;
-            html += `<span class="qty-num" id="qty-${dataId}">0</span>`;
-            html += `<button class="qty-btn" onclick="adjQty('${dataId}',1,${item.max})">+</button>`;
-            html += `</div></div>`;
-        });
-
-        html += `</div></div>`;
-    });
-
-    html += `</div>`; // hs-content
-
     html += `<div class="summary-row">`;
     html += `<div class="summary-box"><label>Mini Points</label><div class="summary-val" id="sum-pts-${seat}">0</div></div>`;
     html += `<div class="summary-box"><label>Doubles</label><div class="summary-val" id="sum-dbl-${seat}">0</div></div>`;
     html += `</div>`;
 
-    html += `<div class="seat-total"><span>Point Total</span><strong id="total-${seat}">0</strong></div>`;
+    html += `<div class="seat-total">`;
+    html += `<div class="seat-total-main"><span>Point Total</span><div class="seat-total-value"><span class="status-badge east-badge" id="east-badge-${seat}">East x2</span><span class="status-badge limit-badge" id="limit-badge-${seat}">Limit</span><span class="base-total" id="base-total-${seat}"></span><strong id="total-${seat}">0</strong></div></div>`;
+    html += `</div>`;
+
+    html += `<div class="hs-toggle" onclick="toggleHS(this)">Hand Selection</div>`;
+    html += `<div class="hs-content">`;
+
+    HAND_SECTIONS.forEach((section, si) => {
+        const woClass = section.winnerOnly ? ' winner-only-section' : '';
+        html += `<div class="hand-section${woClass}" id="section-${seat}-${section.id}">`;
+        html += `<div class="hand-section-head" onclick="toggleSection(this)">${section.label}</div>`;
+        html += `<div class="hand-section-body">`;
+
+        {
+            section.items.forEach((item, ii) => {
+                const dataId = `${seat}-${si}-${ii}`;
+
+                if (item.ui === 'checkbox' || item.ui === 'auto') {
+                    const cbLabel = item.type === 'dbl'
+                        ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                        : `${item.value} pts`;
+                    if (item.ui === 'auto') {
+                        html += `<div class="hand-row"><label class="picker-label"><input type="checkbox" id="chk-${dataId}" disabled><span class="hand-name">${item.name}</span><span class="hand-val">${cbLabel}</span></label></div>`;
+                        return;
+                    }
+                    const onchange = item.radioGroup
+                        ? `onExclusiveCheck('${seat}',${si},${ii},'${item.radioGroup}')`
+                        : `calculateScores()`;
+                    html += `<div class="hand-row"><label class="picker-label"><input type="checkbox" id="chk-${dataId}" onchange="${onchange}"><span class="hand-name">${item.name}</span><span class="hand-val">${cbLabel}</span></label></div>`;
+                    return;
+                }
+
+                const valLabel = item.type === 'dbl'
+                    ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                    : `${item.value} pts`;
+                const suffix = item.max > 1 ? ' ea' : '';
+                html += `<div class="hand-row">`;
+                html += `<span class="hand-name">${item.name}</span>`;
+                html += `<span class="hand-val">${valLabel}${suffix}</span>`;
+                html += `<div class="qty-ctrl">`;
+                html += `<button class="qty-btn" onclick="adjQty('${dataId}',-1,${item.max})">−</button>`;
+                html += `<span class="qty-num" id="qty-${dataId}">0</span>`;
+                html += `<button class="qty-btn" onclick="adjQty('${dataId}',1,${item.max})">+</button>`;
+                html += `</div></div>`;
+            });
+        }
+
+        html += `</div></div>`;
+    });
+
+    html += `</div>`; // hs-content
     html += `</div></div>`;
 
     return html;
@@ -759,16 +818,27 @@ function getSeatHandValues(seat) {
     let limitPts = 0;
     const winner = document.getElementById('winner-seat').value;
 
+    // Limit hand from exclusive checkboxes
+    HAND_SECTIONS[0].items.forEach((item, ii) => {
+        const el = document.getElementById(`chk-${seat}-0-${ii}`);
+        if (el && el.checked) limitPts = item.value;
+    });
+
     HAND_SECTIONS.forEach((section, si) => {
+        if (si === 0) return; // limit handled above
         if (section.winnerOnly && seat !== winner) return;
         section.items.forEach((item, ii) => {
-            const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
-            if (!el) return;
-            const qty = parseInt(el.textContent) || 0;
+            let qty = 0;
+            if (item.ui === 'checkbox' || item.ui === 'auto') {
+                const el = document.getElementById(`chk-${seat}-${si}-${ii}`);
+                qty = el && el.checked ? 1 : 0;
+            } else {
+                const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                qty = el ? (parseInt(el.textContent) || 0) : 0;
+            }
             if (qty === 0) return;
             if (item.type === 'pts') miniPts += item.value * qty;
             else if (item.type === 'dbl') doubles += item.value * qty;
-            else if (item.type === 'limit') limitPts += item.value * qty;
         });
     });
 
@@ -785,9 +855,9 @@ function computePointTotal(seat, winner) {
         ? limitPts + miniPts
         : miniPts * Math.pow(2, doubles);
 
-    const cap = (seat === 'EAST') ? 1000 : 500;
+    const cap = 500;
     const capped = total > cap;
-    return { total: Math.min(total, cap), capped };
+    return { total: Math.min(total, cap), rawTotal: total, capped, limitPts };
 }
 
 function updateWinnerScoringUI() {
@@ -802,6 +872,11 @@ function updateWinnerScoringUI() {
             HAND_SECTIONS.forEach((section, si) => {
                 if (!section.winnerOnly) return;
                 section.items.forEach((item, ii) => {
+                    if (item.ui === 'checkbox' || item.ui === 'auto') {
+                        const el = document.getElementById(`chk-${seat}-${si}-${ii}`);
+                        if (el) el.checked = false;
+                        return;
+                    }
                     const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
                     if (el) {
                         el.textContent = '0';
@@ -815,16 +890,23 @@ function updateWinnerScoringUI() {
 
     // Auto-set Base Win for the winner (section 3, item 0)
     seats.forEach(seat => {
-        const el = document.getElementById(`qty-${seat}-3-0`);
+        const el = document.getElementById(`chk-${seat}-3-0`);
         if (!el) return;
-        if (seat === winner) {
-            el.textContent = '1';
-            el.classList.add('has-val');
-        } else {
-            el.textContent = '0';
-            el.classList.remove('has-val');
-        }
+        el.checked = (seat === winner);
     });
+
+    updateSelfDrawnWin();
+}
+
+function updateSelfDrawnWin() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    seats.forEach(seat => {
+        const el = document.getElementById(`chk-${seat}-3-5`);
+        if (!el) return;
+        el.checked = (seat === winner && discardedBy === 'SELFDRAW');
+    });
+    calculateScores();
 }
 
 function updateSeatTags() {
@@ -873,6 +955,16 @@ function updateDiscardedByDropdown() {
     select.disabled = (winner === 'NONE');
 }
 
+function onExclusiveCheck(seat, si, ii, radioGroup) {
+    HAND_SECTIONS[si].items.forEach((item, idx) => {
+        if (idx !== ii && item.radioGroup === radioGroup) {
+            const el = document.getElementById(`chk-${seat}-${si}-${idx}`);
+            if (el) el.checked = false;
+        }
+    });
+    calculateScores();
+}
+
 function onDiscarderRuleChange(which) {
     if (which === 'double' && document.getElementById('rule-discarder-pays-double').checked) {
         document.getElementById('rule-discarder-pays-all').checked = false;
@@ -900,14 +992,57 @@ function calculateScores() {
 
     const baseScores = {};
     seats.forEach(seat => {
-        const { total, capped } = computePointTotal(seat, winner);
+        const { total, rawTotal, capped, limitPts } = computePointTotal(seat, winner);
         baseScores[seat] = total;
+
+        // Item 1: limit hand hides doubles section
+        const doublesSection = document.getElementById(`section-${seat}-doubles`);
+        if (doublesSection) {
+            const hasLimit = limitPts > 0;
+            doublesSection.style.display = hasLimit ? 'none' : '';
+            if (hasLimit) {
+                HAND_SECTIONS[1].items.forEach((item, ii) => {
+                    if (item.ui === 'checkbox') {
+                        const el = document.getElementById(`chk-${seat}-1-${ii}`);
+                        if (el) el.checked = false;
+                    } else {
+                        const el = document.getElementById(`qty-${seat}-1-${ii}`);
+                        if (el) { el.textContent = '0'; el.classList.remove('has-val'); }
+                    }
+                });
+                document.getElementById(`sum-dbl-${seat}`).textContent = '0';
+            }
+        }
+
+
+        // Item 3: east doubling on displayed total
+        let displayTotal = total;
+        let realValue = rawTotal;
+        const cap = (seat === 'EAST' && eastDoublingEnabled) ? 1000 : 500;
+        const isEastDoubled = eastDoublingEnabled && seat === 'EAST' && winner === 'EAST';
+        if (isEastDoubled) {
+            displayTotal = Math.min(total * 2, cap);
+            realValue = rawTotal * 2;
+        }
+        const displayCapped = capped || displayTotal >= cap;
 
         const totalEl = document.getElementById(`total-${seat}`);
         if (totalEl) {
-            totalEl.innerText = total;
-            totalEl.classList.toggle('capped', capped);
-            totalEl.title = capped ? 'Capped at the point limit' : '';
+            totalEl.innerText = displayTotal;
+            totalEl.classList.toggle('capped', displayCapped);
+            totalEl.title = displayCapped ? 'Capped at the point limit' : '';
+        }
+
+        const eastBadge = document.getElementById(`east-badge-${seat}`);
+        if (eastBadge) eastBadge.classList.toggle('show', isEastDoubled);
+
+        const limitBadge = document.getElementById(`limit-badge-${seat}`);
+        if (limitBadge) limitBadge.classList.toggle('show', displayCapped);
+
+        const baseTotalEl = document.getElementById(`base-total-${seat}`);
+        if (baseTotalEl) {
+            baseTotalEl.textContent = realValue.toLocaleString('en-US');
+            baseTotalEl.classList.toggle('show', displayCapped);
         }
     });
 
@@ -1017,10 +1152,12 @@ function resetForm() {
     seats.forEach(seat => {
         HAND_SECTIONS.forEach((section, si) => {
             section.items.forEach((item, ii) => {
-                const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
-                if (el) {
-                    el.textContent = '0';
-                    el.classList.remove('has-val');
+                if (item.ui === 'checkbox' || item.ui === 'auto') {
+                    const el = document.getElementById(`chk-${seat}-${si}-${ii}`);
+                    if (el) el.checked = false;
+                } else {
+                    const el = document.getElementById(`qty-${seat}-${si}-${ii}`);
+                    if (el) { el.textContent = '0'; el.classList.remove('has-val'); }
                 }
             });
         });
