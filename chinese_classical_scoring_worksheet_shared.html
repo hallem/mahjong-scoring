@@ -670,8 +670,42 @@
 
         <div class="lobby-box" id="lobby-create-join">
             <h3>Create a Game</h3>
-            <button class="btn" onclick="createGame()">Create New Game</button>
-            <h3 style="margin-top: 10px;">Join a Game</h3>
+
+            <div class="meta-item">
+                <span style="white-space: nowrap; font-size: 14px;">Winner</span>
+                <select class="meta-select" id="lobby-winner-seat" onchange="updateLobbyDiscardedBy()">
+                    <option value="NONE">Wall</option>
+                    <option value="EAST">East</option>
+                    <option value="SOUTH">South</option>
+                    <option value="WEST">West</option>
+                    <option value="NORTH">North</option>
+                </select>
+            </div>
+            <div class="meta-item">
+                <span style="white-space: nowrap; font-size: 14px;">Discarded by</span>
+                <select class="meta-select" id="lobby-discarded-by" disabled>
+                    <option value="SELFDRAW">Self-Drawn</option>
+                </select>
+            </div>
+
+            <div style="border-top: 1px solid #eee; padding-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores(); pushRuleChange();">
+                    Enable East Doubling
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
+                    Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
+                    Discarder Pays All
+                </label>
+            </div>
+
+            <button class="btn" style="width: 100%;" onclick="createGame()">Create New Game</button>
+
+            <h3 style="margin-top: 6px;">Join a Game</h3>
             <input class="lobby-input" id="join-code-input" placeholder="ROOM CODE" maxlength="6">
             <button class="btn" onclick="joinGameFromInput()">Join Game</button>
             <div class="lobby-error" id="lobby-error"></div>
@@ -700,37 +734,20 @@
 
     <div class="other-seats-status" id="other-seats-status"></div>
 
-    <div class="lobby-box" style="margin-bottom: 14px;">
-        <h3>Game Settings</h3>
-        <div class="meta-inputs" style="max-width: 100%;">
-            <div class="meta-group">
-                <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
-                    <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
-                        <option value="NONE">Wall</option>
-                        <option value="EAST">East</option>
-                        <option value="SOUTH">South</option>
-                        <option value="WEST">West</option>
-                        <option value="NORTH">North</option>
-                    </select>
-                </div>
-                <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
-                    <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled>
-                    </select>
-                </div>
+    <div class="meta-inputs" style="margin-bottom: 14px;">
+        <div class="meta-group">
+            <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
+                <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
+                    <option value="NONE">Wall</option>
+                    <option value="EAST">East</option>
+                    <option value="SOUTH">South</option>
+                    <option value="WEST">West</option>
+                    <option value="NORTH">North</option>
+                </select>
             </div>
-            <div class="meta-group">
-                <label class="meta-checkbox-label">
-                    <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores(); pushRuleChange();">
-                    Enable East Doubling
-                </label>
-                <label class="meta-checkbox-label">
-                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
-                    Discarder Pays Double
-                </label>
-                <label class="meta-checkbox-label">
-                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
-                    Discarder Pays All
-                </label>
+            <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
+                <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled>
+                </select>
             </div>
         </div>
     </div>
@@ -1475,24 +1492,46 @@ function requireSupabase() {
     return true;
 }
 
+function updateLobbyDiscardedBy() {
+    const winner = document.getElementById('lobby-winner-seat').value;
+    const select = document.getElementById('lobby-discarded-by');
+    select.innerHTML = '<option value="SELFDRAW">Self-Drawn</option>';
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.textContent = seat.charAt(0) + seat.slice(1).toLowerCase();
+                select.appendChild(opt);
+            }
+        });
+    }
+    select.disabled = (winner === 'NONE');
+}
+
 async function createGame() {
     document.getElementById('lobby-error').textContent = '';
     if (!requireSupabase()) return;
 
+    const lobbyWinner = document.getElementById('lobby-winner-seat').value;
+    const lobbyDiscardedBy = document.getElementById('lobby-discarded-by').value;
     const roomCode = generateRoomCode();
+    const rules = {
+        eastDoublingEnabled: document.getElementById('rule-east-doubling').checked,
+        discarderPaysDoubleEnabled: document.getElementById('rule-discarder-pays-double').checked,
+        discarderPaysAllEnabled: document.getElementById('rule-discarder-pays-all').checked
+    };
+
     const { data, error } = await supabaseClient
         .from('games')
-        .insert({
-            room_code: roomCode,
-            rules: {
-                eastDoublingEnabled: true,
-                discarderPaysDoubleEnabled: false,
-                discarderPaysAllEnabled: false
-            },
-            status: 'active'
-        })
+        .insert({ room_code: roomCode, rules, status: 'active' })
         .select()
         .single();
+
+    // Copy lobby winner/discarded-by into the game-view controls so the
+    // first hand is pre-populated when the game view opens.
+    document.getElementById('winner-seat').value = lobbyWinner;
+    window._lobbyDiscardedBy = lobbyDiscardedBy;
 
     if (error) {
         document.getElementById('lobby-error').textContent = 'Could not create game: ' + error.message;
@@ -1657,6 +1696,14 @@ async function enterGameView() {
     initSeatScorers();
     updateWinnerScoringUI();
     updateDiscardedByDropdown();
+
+    // If the creator set a winner/discarded-by in the lobby, apply it now
+    // that the game-view dropdown is populated.
+    if (window._lobbyDiscardedBy) {
+        const dbEl = document.getElementById('discarded-by');
+        if (dbEl) dbEl.value = window._lobbyDiscardedBy;
+        window._lobbyDiscardedBy = null;
+    }
 
     await ensureCurrentHand();
     if (currentHand) {
