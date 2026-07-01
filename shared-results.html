@@ -93,6 +93,86 @@
     .neg-val { color: #c62828; font-weight: bold; }
     .zero-val { color: #888; }
 
+    .section-label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #888;
+        margin: 4px 0 8px;
+    }
+
+    .hand-breakdown-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .hand-breakdown-card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .hand-breakdown-card.pending {
+        border-style: dashed;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+    }
+    .hand-breakdown-note { font-size: 11px; color: #999; }
+    .hand-breakdown-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #f8f8f8;
+        flex-wrap: wrap;
+    }
+    .hand-breakdown-title { font-size: 12px; font-weight: 700; color: #555; }
+    .hand-breakdown-meta { font-size: 12px; color: #888; }
+    .hand-breakdown-meta b { color: #222; font-weight: 700; }
+    .hand-breakdown-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: #eee;
+    }
+    .hand-breakdown-cell {
+        background: #fff;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: #555;
+    }
+    .hand-breakdown-score { font-weight: 700; color: #222; }
+    .hand-breakdown-score.win { color: #2e7d32; }
+
+    .next-hand-card {
+        background: #fff;
+        border: 2px solid #185fa5;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .next-hand-card-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #185fa5;
+        background: #e8f0fb;
+        padding: 4px 10px;
+        border-radius: 6px;
+        align-self: flex-start;
+    }
+
     @media (max-width: 560px) {
         .table-responsive {
             overflow-x: visible;
@@ -222,6 +302,7 @@
         </div>
     </div>
 
+    <div class="section-label" id="running-total-label">Running Total</div>
     <div class="table-responsive" id="table-responsive">
         <table>
             <thead>
@@ -271,8 +352,31 @@
         </table>
     </div>
 
+    <div class="section-label hidden-element" id="hand-breakdown-label">Hand Breakdown</div>
+    <div class="hand-breakdown-list" id="hand-breakdown-list"></div>
+
+    <div class="next-hand-card hidden-element" id="next-hand-card">
+        <span class="next-hand-card-title">Set up next hand</span>
+        <div class="meta-item">
+            <span style="white-space: nowrap; font-size: 14px;">Winner</span>
+            <select class="meta-select" id="next-hand-winner-seat" onchange="updateNextHandDiscardedBy()">
+                <option value="NONE">Wall</option>
+                <option value="EAST">East</option>
+                <option value="SOUTH">South</option>
+                <option value="WEST">West</option>
+                <option value="NORTH">North</option>
+            </select>
+        </div>
+        <div class="meta-item">
+            <span style="white-space: nowrap; font-size: 14px;">Discarded by</span>
+            <select class="meta-select" id="next-hand-discarded-by" disabled>
+                <option value="SELFDRAW">Self-Drawn</option>
+            </select>
+        </div>
+        <button class="btn" style="width: 100%; background:#2e7d32;" onclick="startNextHandAndRedirect()">Start Next Hand</button>
+    </div>
+
     <div class="action-bar" style="gap: 10px; flex-wrap: wrap;">
-        <button class="btn hidden-element" id="next-hand-btn" style="background:#2e7d32;" onclick="startNextHandAndRedirect()">Start Next Hand</button>
         <button class="btn" style="background:#444;" onclick="endGame()">End Game</button>
     </div>
 </div>
@@ -286,7 +390,6 @@ let currentGame = null;
 let currentHand = null;
 let mySeat = null;
 let deviceToken = null;
-let remoteSelections = {};   // { SEAT: {checks,qtys} } for all four seats
 let submittedSeats = {};
 let handChannel = null;
 let gameChannel = null;
@@ -340,7 +443,6 @@ function applyHandRowToLocalUI(hand) {
     const discardedEl = document.getElementById('discarded-by');
     if (discardedEl && hand.discarded_by) discardedEl.value = hand.discarded_by;
     updateHandLabels();
-    renderResults();
 }
 
 function applyRulesToLocalUI(rules) {
@@ -350,23 +452,33 @@ function applyRulesToLocalUI(rules) {
     if (eastEl && rules.eastDoublingEnabled !== undefined) eastEl.checked = rules.eastDoublingEnabled;
     if (dblEl && rules.discarderPaysDoubleEnabled !== undefined) dblEl.checked = rules.discarderPaysDoubleEnabled;
     if (allEl && rules.discarderPaysAllEnabled !== undefined) allEl.checked = rules.discarderPaysAllEnabled;
-    renderResults();
 }
 
-// --- Payout matrix rendering (pure calc lives in mahjong-scoring-engine.js) ---
+function updateNextHandDiscardedBy() {
+    const winner = document.getElementById('next-hand-winner-seat').value;
+    const select = document.getElementById('next-hand-discarded-by');
+    select.innerHTML = '<option value="SELFDRAW">Self-Drawn</option>';
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.textContent = seat.charAt(0) + seat.slice(1).toLowerCase();
+                select.appendChild(opt);
+            }
+        });
+    }
+    select.disabled = (winner === 'NONE');
+}
 
-function renderResults() {
-    const winner = document.getElementById('winner-seat').value;
-    const discardedByRaw = document.getElementById('discarded-by').value;
-    const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
-    const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
-    const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
+const WINNER_NAMES = { NONE: 'Wall', EAST: 'East', SOUTH: 'South', WEST: 'West', NORTH: 'North' };
+const DISCARDED_BY_NAMES = { SELFDRAW: 'Self-drawn', EAST: 'East', SOUTH: 'South', WEST: 'West', NORTH: 'North' };
 
-    const { baseScores } = computeAllBaseScores(winner, eastDoublingEnabled, remoteSelections);
-    const { matrix, netResults } = computePayoutMatrix({
-        winner, discardedByRaw, eastDoublingEnabled, discarderPaysDoubleEnabled, discarderPaysAllEnabled, baseScores
-    });
+// --- Cumulative matrix + per-hand breakdown (pure calc lives in
+// mahjong-scoring-engine.js; this fetches every hand's submissions for the
+// game and sums each hand's own payout matrix into a running total) ---
 
+function renderCumulativeMatrix(matrix, netResults) {
     seats.forEach(p1 => {
         seats.forEach(p2 => {
             if (p1 === p2) return;
@@ -391,6 +503,104 @@ function renderResults() {
     });
 }
 
+function renderHandBreakdown(historyRows) {
+    const container = document.getElementById('hand-breakdown-list');
+    const label = document.getElementById('hand-breakdown-label');
+    if (!container) return;
+    if (historyRows.length === 0) {
+        container.innerHTML = '';
+        if (label) label.classList.add('hidden-element');
+        return;
+    }
+    if (label) label.classList.remove('hidden-element');
+
+    container.innerHTML = historyRows.map(row => {
+        const { hand, submittedSeats: handSeats, details } = row;
+        if (handSeats.length < 4) {
+            return `<div class="hand-breakdown-card pending">
+                <span class="hand-breakdown-title">Hand ${hand.hand_number} (in progress)</span>
+                <span class="hand-breakdown-note">${handSeats.length} of 4 submitted</span>
+            </div>`;
+        }
+        const winnerName = WINNER_NAMES[hand.winner_seat] || hand.winner_seat || 'Wall';
+        const discardBit = (hand.discarded_by && hand.discarded_by !== 'SELFDRAW')
+            ? ` · Discard <b>${DISCARDED_BY_NAMES[hand.discarded_by] || hand.discarded_by}</b>` : '';
+        return `<div class="hand-breakdown-card">
+            <div class="hand-breakdown-head">
+                <span class="hand-breakdown-title">Hand ${hand.hand_number}</span>
+                <span class="hand-breakdown-meta">Winner <b>${winnerName}</b>${discardBit}</span>
+            </div>
+            <div class="hand-breakdown-grid">
+                ${seats.map(seat => `<div class="hand-breakdown-cell"><span>${seat.charAt(0) + seat.slice(1).toLowerCase()}</span><span class="hand-breakdown-score${seat === hand.winner_seat ? ' win' : ''}">${details[seat].displayTotal}</span></div>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function refreshResultsView() {
+    if (!currentGame || !currentHand) return;
+
+    const { data: hands } = await supabaseClient
+        .from('hands').select().eq('game_id', currentGame.id).order('hand_number', { ascending: true });
+    if (!hands || hands.length === 0) return;
+
+    const handIds = hands.map(h => h.id);
+    const { data: subs } = await supabaseClient
+        .from('hand_submissions').select('hand_id, seat, selections').in('hand_id', handIds);
+    const subsByHand = {};
+    (subs || []).forEach(s => { (subsByHand[s.hand_id] = subsByHand[s.hand_id] || []).push(s); });
+
+    const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
+    const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
+    const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
+
+    const cumulative = {
+        EAST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        SOUTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        WEST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        NORTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 }
+    };
+    const historyRows = [];
+    let currentHandSubmittedSeats = {};
+
+    hands.forEach(hand => {
+        const handSubs = subsByHand[hand.id] || [];
+        const selectionsBySeat = {};
+        handSubs.forEach(s => { selectionsBySeat[s.seat] = s.selections; });
+
+        const { baseScores, details } = computeAllBaseScores(hand.winner_seat || 'NONE', eastDoublingEnabled, selectionsBySeat);
+        const { matrix } = computePayoutMatrix({
+            winner: hand.winner_seat || 'NONE',
+            discardedByRaw: hand.discarded_by || 'SELFDRAW',
+            eastDoublingEnabled, discarderPaysDoubleEnabled, discarderPaysAllEnabled,
+            baseScores
+        });
+        seats.forEach(p1 => seats.forEach(p2 => { if (p1 !== p2) cumulative[p1][p2] += matrix[p1][p2]; }));
+
+        historyRows.push({ hand, submittedSeats: handSubs.map(s => s.seat), details });
+
+        if (hand.id === currentHand.id) {
+            currentHandSubmittedSeats = {};
+            handSubs.forEach(s => { currentHandSubmittedSeats[s.seat] = true; });
+        }
+    });
+
+    submittedSeats = currentHandSubmittedSeats;
+    renderSeatsStatus();
+    updateButtonsForHandStatus();
+
+    const netResults = {};
+    seats.forEach(p1 => {
+        let net = 0;
+        seats.forEach(p2 => { if (p1 !== p2) net += cumulative[p1][p2]; });
+        netResults[p1] = net;
+    });
+    renderCumulativeMatrix(cumulative, netResults);
+    renderHandBreakdown(historyRows);
+
+    await maybeCompleteHand();
+}
+
 function renderSeatsStatus() {
     const strip = document.getElementById('other-seats-status');
     if (!strip) return;
@@ -402,27 +612,18 @@ function renderSeatsStatus() {
 }
 
 function updateButtonsForHandStatus() {
-    const nextBtn = document.getElementById('next-hand-btn');
-    if (!nextBtn) return;
+    const card = document.getElementById('next-hand-card');
+    if (!card) return;
     const allSubmitted = seats.every(s => submittedSeats[s]);
-    nextBtn.classList.toggle('hidden-element', !(allSubmitted || (currentHand && currentHand.status === 'complete')));
-}
-
-async function fetchHandSubmissions() {
-    if (!currentHand) return;
-    const { data } = await supabaseClient
-        .from('hand_submissions')
-        .select('seat, selections')
-        .eq('hand_id', currentHand.id);
-    remoteSelections = {};
-    submittedSeats = {};
-    (data || []).forEach(row => {
-        submittedSeats[row.seat] = true;
-        remoteSelections[row.seat] = row.selections;
-    });
-    renderSeatsStatus();
-    updateButtonsForHandStatus();
-    renderResults();
+    const ready = allSubmitted || (currentHand && currentHand.status === 'complete');
+    const wasHidden = card.classList.contains('hidden-element');
+    card.classList.toggle('hidden-element', !ready);
+    if (ready && wasHidden) {
+        // Card just became visible for this hand — reset the pickers to
+        // defaults rather than leaving stale values from a previous hand.
+        document.getElementById('next-hand-winner-seat').value = 'NONE';
+        updateNextHandDiscardedBy();
+    }
 }
 
 async function maybeCompleteHand() {
@@ -438,16 +639,26 @@ async function maybeCompleteHand() {
 
 async function startNextHandAndRedirect() {
     if (!currentGame || !currentHand) return;
-    const nextBtn = document.getElementById('next-hand-btn');
-    if (nextBtn) nextBtn.disabled = true;
+    const startBtn = document.querySelector('#next-hand-card .btn');
+    if (startBtn) startBtn.disabled = true;
+
+    const nextWinner = document.getElementById('next-hand-winner-seat').value;
+    const nextDiscardedBy = document.getElementById('next-hand-discarded-by').value;
+
     const { data: hand, error } = await supabaseClient
         .from('hands')
-        .insert({ game_id: currentGame.id, hand_number: currentHand.hand_number + 1, status: 'collecting' })
+        .insert({
+            game_id: currentGame.id,
+            hand_number: currentHand.hand_number + 1,
+            status: 'collecting',
+            winner_seat: nextWinner,
+            discarded_by: nextWinner === 'NONE' ? 'SELFDRAW' : nextDiscardedBy
+        })
         .select()
         .single();
     if (error) {
         showSyncToast('Could not start next hand: ' + error.message);
-        if (nextBtn) nextBtn.disabled = false;
+        if (startBtn) startBtn.disabled = false;
         return;
     }
     await supabaseClient.from('games').update({ current_hand_id: hand.id }).eq('id', currentGame.id);
@@ -456,7 +667,7 @@ async function startNextHandAndRedirect() {
 
 function showFinalResultsBanner() {
     clearLocalSession();
-    ['hand-info-card', 'other-seats-status'].forEach(id => {
+    ['hand-info-card', 'other-seats-status', 'next-hand-card'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden-element');
     });
@@ -480,13 +691,13 @@ function subscribeToHand(handId) {
     handChannel = supabaseClient
         .channel('hand-' + handId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'hand_submissions', filter: 'hand_id=eq.' + handId },
-            async () => { await fetchHandSubmissions(); await maybeCompleteHand(); })
+            async () => { await refreshResultsView(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'hands', filter: 'id=eq.' + handId },
-            (payload) => {
+            async (payload) => {
                 if (payload.new) {
                     currentHand = { ...currentHand, ...payload.new };
                     applyHandRowToLocalUI(payload.new);
-                    updateButtonsForHandStatus();
+                    await refreshResultsView();
                 }
             })
         .subscribe();
@@ -553,14 +764,13 @@ window.onload = async function() {
 
     if (currentGame.rules) applyRulesToLocalUI(currentGame.rules);
     applyHandRowToLocalUI(currentHand);
-    await fetchHandSubmissions();
+    await refreshResultsView();
 
     if (currentGame.status === 'closed') {
         showFinalResultsBanner();
         return;
     }
 
-    await maybeCompleteHand();
     subscribeToHand(currentHand.id);
     subscribeToGame(currentGame.id);
 };
