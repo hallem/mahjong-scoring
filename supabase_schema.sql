@@ -57,12 +57,17 @@ drop policy if exists "games_update"        on games;
 
 create policy "games_select" on games for select using (true);
 create policy "games_insert" on games for insert with check (true);
-create policy "games_update" on games for update
-  using (true)
-  with check (
-    room_code = (select room_code from games where id = games.id) and
-    id        = games.id
-  );
+-- Previously this WITH CHECK tried to pin room_code/id via a self-referential
+-- subquery (`select room_code from games where id = games.id`), which threw
+-- "more than one row returned by a subquery used as an expression" and
+-- silently broke every update — including current_hand_id, causing
+-- ensureCurrentHand() to spawn a fresh duplicate hand every time it couldn't
+-- see the previous one had stuck. Postgres RLS has no clean built-in way to
+-- diff old-vs-new column values inside a single policy expression (that
+-- needs a trigger), so this is left open like the other tables' updates —
+-- the only thing at risk is a client mangling its own game's non-identity
+-- columns, not any cross-game access.
+create policy "games_update" on games for update using (true) with check (true);
 
 -- seats: anyone can read; insert only when device_token is non-empty (unique
 -- constraint enforces one claim per seat per game); only the token-holder

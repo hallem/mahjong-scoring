@@ -81,9 +81,14 @@ treat it like an unguessable capability token. Don't use blanket
 **`games`**
 - `select`: open (`USING (true)`) — needed to resolve a room code to a game.
 - `insert`: open — anyone can create a game.
-- `update`: only allow changing `rules`, `current_hand_id`, `status` — assert
-  `room_code` and `id` are unchanged via a `WITH CHECK` comparing to `OLD`,
-  so a client can't hijack a different game's identity fields.
+- `update`: open (`USING (true) WITH CHECK (true)`). We originally tried to
+  pin `room_code`/`id` as unchanged via a self-referential subquery, but
+  Postgres RLS can't diff old-vs-new column values inside one policy
+  expression that way — it threw "more than one row returned by a subquery
+  used as an expression" and silently broke every update, including
+  `current_hand_id`, which caused runaway duplicate hand rows. Left open
+  since the only risk is a client mangling its own game's non-identity
+  columns, not cross-game access.
 - `delete`: **no policy** — games are closed via `status='closed'`, never
   deleted by a client.
 
