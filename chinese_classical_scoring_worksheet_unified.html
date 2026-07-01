@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chinese Classical Mahjong Scorer</title>
+    <style>
+    *, *:before, *:after {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: clamp(8px, 3vw, 16px);
+        color: #222;
+        background-color: #f0f2f5;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* Fluid container */
+    .app-container {
+        max-width: 100%;            /* small screens: use the full (padded) width */
+        margin: 0 auto;
+        background: #fff;
+        padding: clamp(12px, 4vw, 20px);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    /* Only leave the 20% side gutters once the screen is wide enough for them. */
+    @media (min-width: 1024px) {
+        .app-container { max-width: 80%; }
+    }
+
+    .header {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        gap: 16px;
+        border-bottom: 2px solid #b32424;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+    }
+
+    .title-grid-table {
+        display: flex;
+        align-items: center;
+    }
+
+    .title-icon {
+        font-size: 28px;
+        padding-right: 10px;
+        line-height: 1;
+    }
+
+    .title-line1 {
+        font-size: clamp(18px, 5vw, 22px);
+        color: #b32424;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .meta-inputs {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .meta-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .meta-checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+        padding: 4px 0;
+    }
+
+    /* Enlarge checkboxes for mobile touch */
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #b32424;
+    }
+
+    /* 44px min-height for iOS touch targets */
+    .meta-select {
+        border: 1px solid #ccc;
+        width: 140px;
+        height: 44px;
+        background: #fcfcfc;
+        font-weight: bold;
+        text-align: center;
+        font-size: 16px; /* 16px prevents iOS auto-zoom */
+        border-radius: 8px;
+        color: #222;
+    }
+
+    .meta-select:disabled { background: #f0f0f0; color: #aaa; cursor: not-allowed; }
+
+    .hidden-element {
+        display: none !important;
+    }
+
+    /* Per-seat header cards (always visible) */
+    .scores-container {
+        display: grid;
+        grid-template-columns: 1fr;   /* phones: one card per row */
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .seat-scorer {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        cursor: pointer;
+        transition: box-shadow 0.15s;
+    }
+    .seat-scorer.active-edit {
+        box-shadow: 0 0 0 3px #185fa5;
+    }
+
+    .seat-scorer-head {
+        background: #b32424;
+        color: #fff;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 14px;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .seat-tag {
+        font-size: 11px;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    .seat-body {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .seat-total {
+        border-top: 2px solid #b32424;
+        padding-top: 8px;
+    }
+    .seat-total-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+    .seat-total-main > span {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #b32424;
+        letter-spacing: 0.3px;
+    }
+    .seat-total-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+    .seat-total strong { font-size: 20px; color: #222; }
+    .seat-total strong.capped { color: #b32424; }
+
+    .tap-hint {
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+        margin: 0 0 14px;
+    }
+
+    /* Shared hand-selection panel */
+    .hand-panel-wrapper {
+        margin-bottom: 16px;
+    }
+    .hand-panel-title {
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #b32424;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #b32424;
+    }
+    .hand-panel-title span { color: #222; }
+
+    .hand-section {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+
+    .picker-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        cursor: pointer;
+    }
+    .picker-label input[type="radio"],
+    .picker-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #b32424;
+        flex-shrink: 0;
+        margin: 0;
+    }
+
+    .status-badge {
+        display: none;
+        font-size: 9px;
+        font-weight: 700;
+        color: #fff;
+        padding: 2px 5px;
+        border-radius: 4px;
+        vertical-align: middle;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    .status-badge.show { display: inline-block; }
+    .limit-badge { background: #b32424; }
+    .east-badge { background: #185fa5; }
+    .base-total { display: none; font-size: 13px; color: #888; }
+    .base-total.show { display: inline-block; }
+    .hand-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #555;
+        background: #f2f2f2;
+        cursor: pointer;
+        user-select: none;
+        letter-spacing: 0.3px;
+    }
+    .hand-section-head::after {
+        content: '▸';
+        font-size: 10px;
+        color: #999;
+        transition: transform 0.2s;
+    }
+    .hand-section-head.open::after {
+        transform: rotate(90deg);
+    }
+    .hand-section-body {
+        display: none;
+    }
+    .hand-section-body.open {
+        display: block;
+    }
+
+    .hand-row {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        font-size: 13px;
+        border-top: 1px solid #eee;
+    }
+    .hand-name {
+        flex: 1;
+        min-width: 0;
+    }
+    .hand-val {
+        color: #999;
+        font-size: 11px;
+        margin-right: 8px;
+        white-space: nowrap;
+    }
+
+    .qty-ctrl {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .qty-btn {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f8f8;
+        border: none;
+        font-size: 16px;
+        font-weight: bold;
+        color: #555;
+        cursor: pointer;
+        padding: 0;
+    }
+    .qty-btn:active { background: #ddd; }
+    .qty-num {
+        width: 26px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: bold;
+        color: #222;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        line-height: 30px;
+    }
+    .qty-num.has-val { color: #b32424; }
+
+    .summary-row {
+        display: flex;
+        gap: 10px;
+    }
+    .summary-box { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .summary-box label {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #555;
+        letter-spacing: 0.3px;
+    }
+    .summary-val {
+        height: 40px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: #f8f8f8;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #222;
+    }
+
+    .winner-only-section { display: none; }
+    .hand-panel.is-winner .winner-only-section { display: block; }
+
+    /* Table responsive wrapper */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    table {
+        width: 100%;
+        min-width: 360px;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        text-align: center;
+        padding: 12px 4px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        color: #444;
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+
+    td:first-child {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        width: 14%;
+        color: #444;
+    }
+
+    .pay-col { width: 17%; }
+
+    .net-col {
+        background-color: #fdf2f2;
+        font-weight: bold;
+        width: 18%;
+        border-left: 2px solid #b32424;
+    }
+
+    th.net-col {
+        background-color: #b32424 !important;
+        color: #fff;
+        border: 2px solid #b32424;
+    }
+
+    .diagonal {
+        background-color: #eaeaea !important;
+        color: #999;
+    }
+
+    .pos-val { color: #2e7d32; font-weight: bold; }
+    .neg-val { color: #c62828; font-weight: bold; }
+    .zero-val { color: #888; }
+
+    .action-bar {
+        display: flex;
+        justify-content: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .btn {
+        background: #b32424;
+        color: #fff;
+        border: none;
+        padding: 0 24px;
+        height: 44px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        box-shadow: 0 2px 4px rgba(179, 36, 36, 0.3);
+    }
+    .btn:active { background: #911d1d; transform: translateY(1px); }
+
+    /* Phone: turn the payout matrix into a single Net Result Summary card */
+    @media (max-width: 560px) {
+        .table-responsive {
+            overflow-x: visible;
+            border: none;
+            border-radius: 0;
+            margin-bottom: 16px;
+        }
+
+        table { display: block; min-width: 0; border: none; font-size: 15px; }
+        thead { display: none; }
+
+        tbody {
+            display: block;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        tbody::before {
+            content: "Net Results";
+            display: block;
+            background-color: #b32424;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 14px;
+        }
+
+        tr {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+        tr:last-child {
+            border-bottom: none;
+        }
+
+        td.player-name {
+            display: block;
+            width: auto;
+            text-align: left;
+            background: none;
+            color: #333;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 14px;
+            border: none;
+        }
+        td.player-name::before { content: none; }
+
+        td {
+            display: block;
+            width: auto;
+            padding: 12px 14px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        td::before { content: none; }
+
+        td:not(.player-name):not(.net-col) {
+            display: none;
+        }
+
+        td.net-col {
+            display: block;
+            width: auto;
+            background: none;
+            border: none;
+            font-size: 16px;
+            text-align: right;
+        }
+    }
+
+    /* Desktop overrides */
+    @media (min-width: 650px) {
+        .meta-inputs { grid-template-columns: 1fr 1fr; gap: 24px; flex: 1 1 360px; max-width: 560px; }
+        .scores-container { grid-template-columns: 1fr 1fr; }
+        .header { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 24px 32px; }
+        .title-grid-table { flex: 0 0 auto; }
+    }
+
+    /* Wide screens: all four seat headers in one row */
+    @media (min-width: 1000px) {
+        .scores-container { grid-template-columns: repeat(4, 1fr); }
+    }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <div class="title-grid-table">
+            <div class="title-icon">🀄</div>
+            <div class="title-line1">Chinese Classical</div>
+        </div>
+
+        <div class="meta-inputs">
+            <div class="meta-group">
+                <div class="meta-item"><span style="white-space: nowrap">Winner:</span>
+                    <select class="meta-select" id="winner-seat" onchange="handleWinnerChange()">
+                        <option value="NONE">Wall</option>
+                        <option value="EAST">East</option>
+                        <option value="SOUTH">South</option>
+                        <option value="WEST">West</option>
+                        <option value="NORTH">North</option>
+                    </select>
+                </div>
+                <div class="meta-item" id="discarded-by-container"><span style="white-space: nowrap">Discarded By:</span>
+                    <select class="meta-select" id="discarded-by" onchange="updateSeatTags(); updateSelfDrawnWin()" disabled>
+                    </select>
+                </div>
+            </div>
+
+            <div class="meta-group">
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-east-doubling" checked onchange="calculateScores()">
+                    Enable East Doubling
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
+                    Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
+                    Discarder Pays All
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="scores-container" id="scores-container">
+    </div>
+
+    <div class="tap-hint">Tap a player above to enter or edit their hand</div>
+
+    <div class="hand-panel-wrapper">
+        <div class="hand-panel-title">Hand Selection — <span id="hand-panel-seat-label">EAST</span></div>
+        <div class="hand-panel" id="hand-panel"></div>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+            <tr>
+                <th>Player</th>
+                <th class="pay-col">vs EAST</th>
+                <th class="pay-col">vs SOUTH</th>
+                <th class="pay-col">vs WEST</th>
+                <th class="pay-col">vs NORTH</th>
+                <th class="net-col">NET RESULT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr id="row-EAST">
+                <td class="player-name">East</td>
+                <td class="diagonal" data-label="vs East">X</td>
+                <td id="cell-EAST-SOUTH" data-label="vs South">0</td>
+                <td id="cell-EAST-WEST" data-label="vs West">0</td>
+                <td id="cell-EAST-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-EAST" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-SOUTH">
+                <td class="player-name">South</td>
+                <td id="cell-SOUTH-EAST" data-label="vs East">0</td>
+                <td class="diagonal" data-label="vs South">X</td>
+                <td id="cell-SOUTH-WEST" data-label="vs West">0</td>
+                <td id="cell-SOUTH-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-SOUTH" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-WEST">
+                <td class="player-name">West</td>
+                <td id="cell-WEST-EAST" data-label="vs East">0</td>
+                <td id="cell-WEST-SOUTH" data-label="vs South">0</td>
+                <td class="diagonal" data-label="vs West">X</td>
+                <td id="cell-WEST-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-WEST" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-NORTH">
+                <td class="player-name">North</td>
+                <td id="cell-NORTH-EAST" data-label="vs East">0</td>
+                <td id="cell-NORTH-SOUTH" data-label="vs South">0</td>
+                <td id="cell-NORTH-WEST" data-label="vs West">0</td>
+                <td class="diagonal" data-label="vs North">X</td>
+                <td class="net-col" id="net-NORTH" data-label="Net Result">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn" onclick="resetForm()">Clear Scores</button>
+    </div>
+</div>
+
+<script>
+const seats = ['EAST', 'SOUTH', 'WEST', 'NORTH'];
+
+// Which seat's hand-selection panel is currently shown/editable, and the
+// per-seat data model backing it. Since only the active seat's checkboxes/
+// steppers ever exist in the DOM at once, every seat's selections are kept
+// here (not read from the DOM) so switching seats never loses data.
+let activeSeat = 'EAST';
+let handState = {};
+seats.forEach(seat => { handState[seat] = { checks: {}, qtys: {} }; });
+
+const HAND_SECTIONS = [
+    {
+        id: 'limit',
+        label: 'Limit Hands',
+        winnerOnly: true,
+        items: [
+            { name: 'Three Big Dragons',  type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Thirteen Orphans',   type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Four Big Winds',     type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Nine Gates',         type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Blessing of Heaven', type: 'limit', value: 300, max: 1, ui: 'checkbox', radioGroup: 'limit' },
+            { name: 'Blessing of Earth',  type: 'limit', value: 150, max: 1, ui: 'checkbox', radioGroup: 'limit' }
+        ]
+    },
+    {
+        id: 'doubles',
+        label: 'Doubles',
+        winnerOnly: false,
+        items: [
+            { name: 'Dragon Pung or Kong',      type: 'dbl', value: 1, max: 3, ui: 'stepper' },
+            { name: 'Seat Wind Pung or Kong',   type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Round Wind Pung or Kong',  type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Seat Flower and Season',   type: 'dbl', value: 1, max: 1, ui: 'checkbox' },
+            { name: 'Half Flush',               type: 'dbl', value: 1, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'Pure Flush',               type: 'dbl', value: 3, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'All Honors',               type: 'dbl', value: 3, max: 1, ui: 'checkbox', radioGroup: 'flush' },
+            { name: 'All Four Flowers',         type: 'dbl', value: 3, max: 1, ui: 'checkbox' },
+            { name: 'All Four Seasons',         type: 'dbl', value: 3, max: 1, ui: 'checkbox' }
+        ]
+    },
+    {
+        id: 'mini-exposed',
+        label: 'Mini Points — Exposed',
+        winnerOnly: false,
+        items: [
+            { name: 'Pung of Simples',              type: 'pts', value: 2,  max: 4 },
+            { name: 'Kong of Simples',               type: 'pts', value: 8,  max: 4 },
+            { name: 'Pung of Terminals',             type: 'pts', value: 4,  max: 4 },
+            { name: 'Kong of Terminals',             type: 'pts', value: 16, max: 4 },
+            { name: 'Pung of Dragons',               type: 'pts', value: 4,  max: 3 },
+            { name: 'Kong of Dragons',               type: 'pts', value: 16, max: 3 },
+            { name: 'Pung of Seat/Round Winds',      type: 'pts', value: 4,  max: 2 },
+            { name: 'Kong of Seat/Round Winds',      type: 'pts', value: 16, max: 2 },
+            { name: 'Pair of Seat/Round Winds',      type: 'pts', value: 2,  max: 2 },
+            { name: 'Pair of Dragons',               type: 'pts', value: 2,  max: 1 },
+            { name: 'Each Seat Flower or Season',    type: 'pts', value: 2,  max: 2 }
+        ]
+    },
+    {
+        id: 'mini-concealed',
+        label: 'Mini Points — Concealed',
+        winnerOnly: false,
+        items: [
+            { name: 'Pung of Simples',              type: 'pts', value: 4,  max: 4 },
+            { name: 'Kong of Simples',               type: 'pts', value: 16, max: 4 },
+            { name: 'Pung of Terminals',             type: 'pts', value: 8,  max: 4 },
+            { name: 'Kong of Terminals',             type: 'pts', value: 32, max: 4 },
+            { name: 'Pung of Dragons',               type: 'pts', value: 8,  max: 3 },
+            { name: 'Kong of Dragons',               type: 'pts', value: 32, max: 3 },
+            { name: 'Pung of Seat/Round Winds',      type: 'pts', value: 8,  max: 2 },
+            { name: 'Kong of Seat/Round Winds',      type: 'pts', value: 32, max: 2 }
+        ]
+    },
+    {
+        id: 'mini-winner',
+        label: 'Mini Points — Winner Only',
+        winnerOnly: true,
+        items: [
+            { name: 'Base Win',              type: 'pts', value: 20, max: 1, ui: 'auto' },
+            { name: 'Pinghu',                type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'All Pungs',             type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Replacement Tile Win',  type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Last Tile Win',         type: 'pts', value: 10, max: 1, ui: 'checkbox' },
+            { name: 'Self-Drawn Win',        type: 'pts', value: 2,  max: 1, ui: 'auto' },
+            { name: 'Eyes Wait',             type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' },
+            { name: 'Closed Wait',           type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' },
+            { name: 'Edge Wait',             type: 'pts', value: 2,  max: 1, ui: 'checkbox', radioGroup: 'wait' }
+        ]
+    }
+];
+
+// Derived section/item indices — computed from section ids rather than
+// hardcoded numbers, so inserting/reordering HAND_SECTIONS later (as just
+// happened with the concealed/exposed split) can't silently desync these.
+const LIMIT_SECTION_INDEX = HAND_SECTIONS.findIndex(s => s.id === 'limit');
+const DOUBLES_SECTION_INDEX = HAND_SECTIONS.findIndex(s => s.id === 'doubles');
+const WINNER_SECTION_INDEX = HAND_SECTIONS.findIndex(s => s.id === 'mini-winner');
+const BASE_WIN_ITEM_INDEX = 0;   // 'Base Win' position within mini-winner.items
+const SELF_DRAWN_ITEM_INDEX = 5; // 'Self-Drawn Win' position within mini-winner.items
+
+// --- Per-seat data model -----------------------------------------------
+
+function setCheck(seat, si, ii, checked) {
+    if (!handState[seat]) handState[seat] = { checks: {}, qtys: {} };
+    const key = `${si}-${ii}`;
+    if (checked) handState[seat].checks[key] = true;
+    else delete handState[seat].checks[key];
+}
+
+function setQty(seat, si, ii, qty) {
+    if (!handState[seat]) handState[seat] = { checks: {}, qtys: {} };
+    const key = `${si}-${ii}`;
+    if (qty > 0) handState[seat].qtys[key] = qty;
+    else delete handState[seat].qtys[key];
+}
+
+function clearHandItem(seat, si, ii) {
+    const item = HAND_SECTIONS[si].items[ii];
+    if (item.ui === 'checkbox' || item.ui === 'auto') setCheck(seat, si, ii, false);
+    else setQty(seat, si, ii, 0);
+}
+
+function getSeatHandValues(seat, winner) {
+    let miniPts = 0;
+    let doubles = 0;
+    let limitPts = 0;
+    const { checks = {}, qtys = {} } = handState[seat] || {};
+
+    HAND_SECTIONS[LIMIT_SECTION_INDEX].items.forEach((item, ii) => {
+        if (checks[`${LIMIT_SECTION_INDEX}-${ii}`]) limitPts = item.value;
+    });
+
+    HAND_SECTIONS.forEach((section, si) => {
+        if (si === LIMIT_SECTION_INDEX) return; // limit handled above
+        if (section.winnerOnly && seat !== winner) return;
+        section.items.forEach((item, ii) => {
+            let qty = 0;
+            if (item.ui === 'checkbox' || item.ui === 'auto') {
+                qty = checks[`${si}-${ii}`] ? 1 : 0;
+            } else {
+                qty = qtys[`${si}-${ii}`] || 0;
+            }
+            if (qty === 0) return;
+            if (item.type === 'pts') miniPts += item.value * qty;
+            else if (item.type === 'dbl') doubles += item.value * qty;
+        });
+    });
+
+    return { miniPts, doubles, limitPts };
+}
+
+function computePointTotal(seat, winner) {
+    const { miniPts, doubles, limitPts } = getSeatHandValues(seat, winner);
+
+    document.getElementById(`sum-pts-${seat}`).textContent = miniPts;
+    document.getElementById(`sum-dbl-${seat}`).textContent = doubles;
+
+    let total = (limitPts > 0)
+        ? limitPts + miniPts
+        : miniPts * Math.pow(2, doubles);
+
+    const cap = 500;
+    const capped = total > cap;
+    return { total: Math.min(total, cap), rawTotal: total, capped, limitPts };
+}
+
+// --- Always-visible per-seat header cards -------------------------------
+
+function buildSeatHeaderCard(seat) {
+    let html = '';
+    html += `<div class="seat-scorer" id="scorer-${seat}" onclick="switchActiveSeat('${seat}')">`;
+    html += `<div class="seat-scorer-head"><span>${seat}</span><span class="seat-tag" id="tag-${seat}"></span></div>`;
+    html += `<div class="seat-body">`;
+
+    html += `<div class="summary-row">`;
+    html += `<div class="summary-box"><label>Mini Points</label><div class="summary-val" id="sum-pts-${seat}">0</div></div>`;
+    html += `<div class="summary-box"><label>Doubles</label><div class="summary-val" id="sum-dbl-${seat}">0</div></div>`;
+    html += `</div>`;
+
+    html += `<div class="seat-total">`;
+    html += `<div class="seat-total-main"><span>Point Total</span><div class="seat-total-value"><span class="status-badge east-badge" id="east-badge-${seat}">East x2</span><span class="status-badge limit-badge" id="limit-badge-${seat}">Limit</span><span class="base-total" id="base-total-${seat}"></span><strong id="total-${seat}">0</strong></div></div>`;
+    html += `</div>`;
+
+    html += `</div></div>`;
+    return html;
+}
+
+function initHeaderCards() {
+    const container = document.getElementById('scores-container');
+    container.innerHTML = seats.map(buildSeatHeaderCard).join('');
+}
+
+// --- Shared hand-selection panel -----------------------------------------
+
+function toggleSection(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+}
+
+function buildHandPanel(seat) {
+    const state = handState[seat] || { checks: {}, qtys: {} };
+    let html = '';
+
+    HAND_SECTIONS.forEach((section, si) => {
+        const woClass = section.winnerOnly ? ' winner-only-section' : '';
+        html += `<div class="hand-section${woClass}" id="panel-section-${section.id}">`;
+        html += `<div class="hand-section-head" onclick="toggleSection(this)">${section.label}</div>`;
+        html += `<div class="hand-section-body">`;
+
+        section.items.forEach((item, ii) => {
+            const dataId = `${seat}-${si}-${ii}`;
+            const key = `${si}-${ii}`;
+
+            if (item.ui === 'checkbox' || item.ui === 'auto') {
+                const cbLabel = item.type === 'dbl'
+                    ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                    : `${item.value} pts`;
+                const isChecked = !!state.checks[key];
+                if (item.ui === 'auto') {
+                    html += `<div class="hand-row"><label class="picker-label"><input type="checkbox" id="chk-${dataId}" ${isChecked ? 'checked' : ''} disabled><span class="hand-name">${item.name}</span><span class="hand-val">${cbLabel}</span></label></div>`;
+                    return;
+                }
+                const onchange = item.radioGroup
+                    ? `onExclusiveCheck('${seat}',${si},${ii},'${item.radioGroup}')`
+                    : `onHandCheckboxChange('${dataId}', this.checked)`;
+                html += `<div class="hand-row"><label class="picker-label"><input type="checkbox" id="chk-${dataId}" ${isChecked ? 'checked' : ''} onchange="${onchange}"><span class="hand-name">${item.name}</span><span class="hand-val">${cbLabel}</span></label></div>`;
+                return;
+            }
+
+            const valLabel = item.type === 'dbl'
+                ? (item.value === 1 ? '1 dbl' : `${item.value} dbl`)
+                : `${item.value} pts`;
+            const suffix = item.max > 1 ? ' ea' : '';
+            const qty = state.qtys[key] || 0;
+            html += `<div class="hand-row">`;
+            html += `<span class="hand-name">${item.name}</span>`;
+            html += `<span class="hand-val">${valLabel}${suffix}</span>`;
+            html += `<div class="qty-ctrl">`;
+            html += `<button class="qty-btn" onclick="adjQty('${dataId}',-1,${item.max})">−</button>`;
+            html += `<span class="qty-num${qty > 0 ? ' has-val' : ''}" id="qty-${dataId}">${qty}</span>`;
+            html += `<button class="qty-btn" onclick="adjQty('${dataId}',1,${item.max})">+</button>`;
+            html += `</div></div>`;
+        });
+
+        html += `</div></div>`;
+    });
+
+    return html;
+}
+
+function applyLimitHidesDoubles(seat) {
+    if (seat !== activeSeat) return;
+    const doublesSection = document.getElementById('panel-section-doubles');
+    if (!doublesSection) return;
+    const state = handState[seat] || { checks: {}, qtys: {} };
+    let hasLimit = false;
+    HAND_SECTIONS[LIMIT_SECTION_INDEX].items.forEach((item, ii) => {
+        if (state.checks[`${LIMIT_SECTION_INDEX}-${ii}`]) hasLimit = true;
+    });
+    doublesSection.style.display = hasLimit ? 'none' : '';
+}
+
+function renderActiveHandPanel() {
+    const panel = document.getElementById('hand-panel');
+    if (!panel) return;
+    const winner = document.getElementById('winner-seat').value;
+    panel.classList.toggle('is-winner', activeSeat === winner);
+    panel.innerHTML = buildHandPanel(activeSeat);
+    applyLimitHidesDoubles(activeSeat);
+}
+
+function switchActiveSeat(seat) {
+    activeSeat = seat;
+    document.querySelectorAll('.seat-scorer').forEach(el => el.classList.remove('active-edit'));
+    const card = document.getElementById(`scorer-${seat}`);
+    if (card) card.classList.add('active-edit');
+    const label = document.getElementById('hand-panel-seat-label');
+    if (label) label.textContent = seat;
+    renderActiveHandPanel();
+}
+
+function onHandCheckboxChange(dataId, checked) {
+    const parts = dataId.split('-');
+    setCheck(parts[0], Number(parts[1]), Number(parts[2]), checked);
+    calculateScores();
+}
+
+function adjQty(dataId, delta, max) {
+    const el = document.getElementById(`qty-${dataId}`);
+    let v = parseInt(el.textContent) + delta;
+    if (v < 0) v = 0;
+    if (v > max) v = max;
+    el.textContent = v;
+    el.classList.toggle('has-val', v > 0);
+    const parts = dataId.split('-');
+    setQty(parts[0], Number(parts[1]), Number(parts[2]), v);
+    calculateScores();
+}
+
+function onExclusiveCheck(seat, si, ii, radioGroup) {
+    HAND_SECTIONS[si].items.forEach((item, idx) => {
+        if (item.radioGroup !== radioGroup) return;
+        const checked = (idx === ii);
+        const el = document.getElementById(`chk-${seat}-${si}-${idx}`);
+        if (el) el.checked = checked;
+        setCheck(seat, si, idx, checked);
+    });
+    calculateScores();
+}
+
+// --- Winner / discarder-driven UI (unchanged behavior, now data-model-based) ---
+
+function updateWinnerScoringUI() {
+    const winner = document.getElementById('winner-seat').value;
+    seats.forEach(seat => {
+        if (seat !== winner) {
+            // Reset winner-only selections for non-winners
+            HAND_SECTIONS.forEach((section, si) => {
+                if (!section.winnerOnly) return;
+                section.items.forEach((item, ii) => clearHandItem(seat, si, ii));
+            });
+        }
+    });
+    updateSeatTags();
+
+    // Auto-set Base Win for the winner
+    seats.forEach(seat => setCheck(seat, WINNER_SECTION_INDEX, BASE_WIN_ITEM_INDEX, seat === winner));
+
+    updateSelfDrawnWin();
+    renderActiveHandPanel();
+}
+
+function updateSelfDrawnWin() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    seats.forEach(seat => {
+        setCheck(seat, WINNER_SECTION_INDEX, SELF_DRAWN_ITEM_INDEX, seat === winner && discardedBy === 'SELFDRAW');
+    });
+    renderActiveHandPanel();
+    calculateScores();
+}
+
+function updateSeatTags() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    const isSelfDraw = (discardedBy === 'SELFDRAW');
+    seats.forEach(seat => {
+        const tag = document.getElementById(`tag-${seat}`);
+        const scorer = document.getElementById(`scorer-${seat}`);
+        if (!tag || !scorer) return;
+        scorer.classList.remove('is-discarder');
+        if (seat === winner) {
+            tag.textContent = '🏆 WINNER';
+        } else if (!isSelfDraw && seat === discardedBy && winner !== 'NONE') {
+            tag.textContent = '🎯 DISCARDER';
+            scorer.classList.add('is-discarder');
+        } else {
+            tag.textContent = '';
+        }
+    });
+}
+
+function updateDiscardedByDropdown() {
+    const winner = document.getElementById('winner-seat').value;
+    const select = document.getElementById('discarded-by');
+    const current = select.value;
+    select.innerHTML = '';
+
+    const sd = document.createElement('option');
+    sd.value = 'SELFDRAW';
+    sd.innerText = 'Self-Drawn';
+    select.appendChild(sd);
+
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase();
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    const valid = Array.prototype.some.call(select.options, o => o.value === current);
+    select.value = valid ? current : 'SELFDRAW';
+    select.disabled = (winner === 'NONE');
+}
+
+function onDiscarderRuleChange(which) {
+    if (which === 'double' && document.getElementById('rule-discarder-pays-double').checked) {
+        document.getElementById('rule-discarder-pays-all').checked = false;
+    } else if (which === 'all' && document.getElementById('rule-discarder-pays-all').checked) {
+        document.getElementById('rule-discarder-pays-double').checked = false;
+    }
+    calculateScores();
+}
+
+function handleWinnerChange() {
+    updateWinnerScoringUI();
+    updateDiscardedByDropdown();
+    calculateScores();
+}
+
+// --- Scoring + payout matrix (unchanged math from the original file) -----
+
+function calculateScores() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = (winner === 'NONE') ? 'SELFDRAW' : document.getElementById('discarded-by').value;
+    const isSelfDraw = (discardedBy === 'SELFDRAW');
+    const discarder = isSelfDraw ? '' : discardedBy;
+
+    const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
+    const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
+    const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
+
+    const baseScores = {};
+    seats.forEach(seat => {
+        const { total, rawTotal, capped, limitPts } = computePointTotal(seat, winner);
+        baseScores[seat] = total;
+
+        // Item 1: limit hand clears any doubles entered for this seat
+        if (limitPts > 0) {
+            HAND_SECTIONS[DOUBLES_SECTION_INDEX].items.forEach((item, ii) => clearHandItem(seat, DOUBLES_SECTION_INDEX, ii));
+            document.getElementById(`sum-dbl-${seat}`).textContent = '0';
+        }
+
+        // Item 3: east doubling on displayed total
+        let displayTotal = total;
+        let realValue = rawTotal;
+        const cap = (seat === 'EAST' && eastDoublingEnabled) ? 1000 : 500;
+        const isEastDoubled = eastDoublingEnabled && seat === 'EAST' && winner === 'EAST';
+        if (isEastDoubled) {
+            displayTotal = Math.min(total * 2, cap);
+            realValue = rawTotal * 2;
+        }
+        const displayCapped = capped || displayTotal >= cap;
+
+        const totalEl = document.getElementById(`total-${seat}`);
+        if (totalEl) {
+            totalEl.innerText = displayTotal;
+            totalEl.classList.toggle('capped', displayCapped);
+            totalEl.title = displayCapped ? 'Capped at the point limit' : '';
+        }
+
+        const eastBadge = document.getElementById(`east-badge-${seat}`);
+        if (eastBadge) eastBadge.classList.toggle('show', isEastDoubled);
+
+        const limitBadge = document.getElementById(`limit-badge-${seat}`);
+        if (limitBadge) limitBadge.classList.toggle('show', displayCapped);
+
+        const baseTotalEl = document.getElementById(`base-total-${seat}`);
+        if (baseTotalEl) {
+            baseTotalEl.textContent = realValue.toLocaleString('en-US');
+            baseTotalEl.classList.toggle('show', displayCapped);
+        }
+    });
+
+    // Refresh the visible panel in case limit-hand clearing touched the active seat's doubles
+    applyLimitHidesDoubles(activeSeat);
+
+    const matrix = {
+        EAST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        SOUTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        WEST:  { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 },
+        NORTH: { EAST: 0, SOUTH: 0, WEST: 0, NORTH: 0 }
+    };
+
+    seats.forEach(p1 => {
+        seats.forEach(p2 => {
+            if (p1 === p2) return;
+            if (p1 === winner) return;
+
+            if (p2 === winner) {
+                let baseWinValue = baseScores[winner];
+
+                if (isSelfDraw) {
+                    let payout = baseWinValue;
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        payout *= 2;
+                    }
+                    matrix[p1][p2] = -payout;
+                    matrix[p2][p1] = payout;
+                } else if (discarderPaysAllEnabled) {
+                    if (p1 === discarder) {
+                        let totalPayout = 0;
+                        seats.forEach(loser => {
+                            if (loser === winner) return;
+                            let payout = baseWinValue;
+                            if (eastDoublingEnabled && (loser === 'EAST' || winner === 'EAST')) {
+                                payout *= 2;
+                            }
+                            totalPayout += payout;
+                        });
+                        matrix[p1][p2] = -totalPayout;
+                        matrix[p2][p1] = totalPayout;
+                    } else {
+                        matrix[p1][p2] = 0;
+                    }
+                } else if (discarderPaysDoubleEnabled) {
+                    if (p1 === discarder) {
+                        let payout = baseWinValue * 2;
+                        if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                            payout *= 2;
+                        }
+                        matrix[p1][p2] = -payout;
+                        matrix[p2][p1] = payout;
+                    } else {
+                        matrix[p1][p2] = 0;
+                    }
+                } else {
+                    let payout = baseWinValue;
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        payout *= 2;
+                    }
+                    matrix[p1][p2] = -payout;
+                    matrix[p2][p1] = payout;
+                }
+            }
+
+            else if (p2 !== winner) {
+                if (baseScores[p1] > baseScores[p2]) {
+                    let diff = baseScores[p1] - baseScores[p2];
+                    if (eastDoublingEnabled && (p1 === 'EAST' || p2 === 'EAST')) {
+                        diff *= 2;
+                    }
+                    matrix[p1][p2] = diff;
+                    matrix[p2][p1] = -diff;
+                }
+            }
+        });
+    });
+
+    seats.forEach(p1 => {
+        let netResult = 0;
+        seats.forEach(p2 => {
+            if (p1 === p2) return;
+
+            const cellValue = matrix[p1][p2];
+            netResult += cellValue;
+
+            const cellElement = document.getElementById(`cell-${p1}-${p2}`);
+            if (cellElement) {
+                cellElement.innerText = cellValue > 0 ? `+${cellValue}` : cellValue;
+                cellElement.className = '';
+                if (cellValue > 0) cellElement.classList.add('pos-val');
+                else if (cellValue < 0) cellElement.classList.add('neg-val');
+                else cellElement.classList.add('zero-val');
+            }
+        });
+
+        const netElement = document.getElementById(`net-${p1}`);
+        if (netElement) {
+            netElement.innerText = netResult > 0 ? `+${netResult}` : netResult;
+            netElement.className = 'net-col';
+            if (netResult > 0) netElement.classList.add('pos-val');
+            else if (netResult < 0) netElement.classList.add('neg-val');
+        }
+    });
+}
+
+function resetForm() {
+    document.getElementById('winner-seat').value = 'NONE';
+    seats.forEach(seat => { handState[seat] = { checks: {}, qtys: {} }; });
+
+    updateDiscardedByDropdown();
+    updateWinnerScoringUI();
+    switchActiveSeat('EAST');
+    calculateScores();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.onload = function() {
+    initHeaderCards();
+    updateDiscardedByDropdown();
+    switchActiveSeat('EAST');
+    updateWinnerScoringUI();
+    calculateScores();
+};
+</script>
+
+</body>
+</html>
