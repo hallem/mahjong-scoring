@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chinese Classical Mahjong Scorer — Results</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="mahjong-supabase.js"></script>
+    <script src="mahjong-scoring-engine.js"></script>
+    <link rel="stylesheet" href="mahjong-shared.css">
+    <style>
+    .results-banner {
+        background: #f2f2f2;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .results-banner-title {
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #444;
+    }
+    .results-banner-sub {
+        font-size: 12px;
+        color: #888;
+        margin-top: 2px;
+    }
+
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    table {
+        width: 100%;
+        min-width: 360px;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        text-align: center;
+        padding: 12px 4px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        color: #444;
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+
+    td:first-child {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        width: 14%;
+        color: #444;
+    }
+
+    .pay-col { width: 17%; }
+
+    .net-col {
+        background-color: #fdf2f2;
+        font-weight: bold;
+        width: 18%;
+        border-left: 2px solid #b32424;
+    }
+
+    th.net-col {
+        background-color: #b32424 !important;
+        color: #fff;
+        border: 2px solid #b32424;
+    }
+
+    .diagonal {
+        background-color: #eaeaea !important;
+        color: #999;
+    }
+
+    .pos-val { color: #2e7d32; font-weight: bold; }
+    .neg-val { color: #c62828; font-weight: bold; }
+    .zero-val { color: #888; }
+
+    @media (max-width: 560px) {
+        .table-responsive {
+            overflow-x: visible;
+            border: none;
+            border-radius: 0;
+            margin-bottom: 16px;
+        }
+
+        table { display: block; min-width: 0; border: none; font-size: 15px; }
+        thead { display: none; }
+
+        tbody {
+            display: block;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+
+        tbody::before {
+            content: "Net Results";
+            display: block;
+            background-color: #b32424;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 14px;
+        }
+
+        tr {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+        tr:last-child {
+            border-bottom: none;
+        }
+
+        td.player-name {
+            display: block;
+            width: auto;
+            text-align: left;
+            background: none;
+            color: #333;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 14px;
+            border: none;
+        }
+        td.player-name::before { content: none; }
+
+        td {
+            display: block;
+            width: auto;
+            padding: 12px 14px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        td::before { content: none; }
+
+        td:not(.player-name):not(.net-col) {
+            display: none;
+        }
+
+        td.net-col {
+            display: block;
+            width: auto;
+            background: none;
+            border: none;
+            font-size: 16px;
+            text-align: right;
+        }
+    }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header" style="align-items:center;">
+        <div class="title-grid-table">
+            <div class="title-icon">🀄</div>
+            <div class="title-line1">Chinese Classical</div>
+        </div>
+        <span class="room-code-badge" id="room-code-badge"></span>
+    </div>
+
+    <select id="winner-seat" class="hidden-element">
+        <option value="NONE">Wall</option>
+        <option value="EAST">East</option>
+        <option value="SOUTH">South</option>
+        <option value="WEST">West</option>
+        <option value="NORTH">North</option>
+    </select>
+    <select id="discarded-by" class="hidden-element" disabled></select>
+    <input type="checkbox" id="rule-east-doubling" class="hidden-element" checked>
+    <input type="checkbox" id="rule-discarder-pays-double" class="hidden-element">
+    <input type="checkbox" id="rule-discarder-pays-all" class="hidden-element">
+
+    <div class="hand-info-card" id="hand-info-card">
+        <div class="hand-info-row">
+            <span class="hand-info-label">You are</span>
+            <span class="hand-info-value" id="my-seat-label"></span>
+        </div>
+        <div class="hand-info-row">
+            <span class="hand-info-label">Winner</span>
+            <span class="hand-info-value" id="label-winner-seat">—</span>
+        </div>
+        <div class="hand-info-row">
+            <span class="hand-info-label">Discarded by</span>
+            <span class="hand-info-value" id="label-discarded-by">—</span>
+        </div>
+    </div>
+
+    <div class="other-seats-status" id="other-seats-status"></div>
+
+    <div class="results-banner hidden-element" id="results-banner">
+        <div>
+            <div class="results-banner-title">Final Results</div>
+            <div class="results-banner-sub" id="results-banner-sub"></div>
+        </div>
+    </div>
+
+    <div class="table-responsive" id="table-responsive">
+        <table>
+            <thead>
+            <tr>
+                <th>Player</th>
+                <th class="pay-col">vs EAST</th>
+                <th class="pay-col">vs SOUTH</th>
+                <th class="pay-col">vs WEST</th>
+                <th class="pay-col">vs NORTH</th>
+                <th class="net-col">NET RESULT</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr id="row-EAST">
+                <td class="player-name">East</td>
+                <td class="diagonal" data-label="vs East">X</td>
+                <td id="cell-EAST-SOUTH" data-label="vs South">0</td>
+                <td id="cell-EAST-WEST" data-label="vs West">0</td>
+                <td id="cell-EAST-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-EAST" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-SOUTH">
+                <td class="player-name">South</td>
+                <td id="cell-SOUTH-EAST" data-label="vs East">0</td>
+                <td class="diagonal" data-label="vs South">X</td>
+                <td id="cell-SOUTH-WEST" data-label="vs West">0</td>
+                <td id="cell-SOUTH-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-SOUTH" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-WEST">
+                <td class="player-name">West</td>
+                <td id="cell-WEST-EAST" data-label="vs East">0</td>
+                <td id="cell-WEST-SOUTH" data-label="vs South">0</td>
+                <td class="diagonal" data-label="vs West">X</td>
+                <td id="cell-WEST-NORTH" data-label="vs North">0</td>
+                <td class="net-col" id="net-WEST" data-label="Net Result">0</td>
+            </tr>
+            <tr id="row-NORTH">
+                <td class="player-name">North</td>
+                <td id="cell-NORTH-EAST" data-label="vs East">0</td>
+                <td id="cell-NORTH-SOUTH" data-label="vs South">0</td>
+                <td id="cell-NORTH-WEST" data-label="vs West">0</td>
+                <td class="diagonal" data-label="vs North">X</td>
+                <td class="net-col" id="net-NORTH" data-label="Net Result">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="action-bar" style="gap: 10px; flex-wrap: wrap;">
+        <button class="btn hidden-element" id="next-hand-btn" style="background:#2e7d32;" onclick="startNextHandAndRedirect()">Start Next Hand</button>
+        <button class="btn" style="background:#444;" onclick="endGame()">End Game</button>
+    </div>
+</div>
+
+<div class="sync-toast" id="sync-toast"></div>
+
+<script>
+const seats = MAHJONG_SEATS;
+
+let currentGame = null;
+let currentHand = null;
+let mySeat = null;
+let deviceToken = null;
+let remoteSelections = {};   // { SEAT: {checks,qtys} } for all four seats
+let submittedSeats = {};
+let handChannel = null;
+let gameChannel = null;
+
+function goToLobby() {
+    window.location.href = 'shared-lobby.html';
+}
+
+function updateDiscardedByDropdown() {
+    const winner = document.getElementById('winner-seat').value;
+    const select = document.getElementById('discarded-by');
+    const current = select.value;
+    select.innerHTML = '';
+
+    const sd = document.createElement('option');
+    sd.value = 'SELFDRAW';
+    sd.innerText = 'Self-Drawn';
+    select.appendChild(sd);
+
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.innerText = seat.charAt(0) + seat.slice(1).toLowerCase();
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    const valid = Array.prototype.some.call(select.options, o => o.value === current);
+    select.value = valid ? current : 'SELFDRAW';
+    select.disabled = (winner === 'NONE');
+}
+
+function updateHandLabels() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedBy = document.getElementById('discarded-by').value;
+    const winnerLabel = document.getElementById('label-winner-seat');
+    const discardedByLabel = document.getElementById('label-discarded-by');
+    const winnerNames = { NONE: 'Wall (no winner)', EAST: 'East', SOUTH: 'South', WEST: 'West', NORTH: 'North' };
+    const discardedByNames = { SELFDRAW: 'Self-drawn', EAST: 'East', SOUTH: 'South', WEST: 'West', NORTH: 'North' };
+    if (winnerLabel) winnerLabel.textContent = winnerNames[winner] || winner;
+    if (discardedByLabel) discardedByLabel.textContent = winner === 'NONE' ? '—' : (discardedByNames[discardedBy] || discardedBy);
+}
+
+function applyHandRowToLocalUI(hand) {
+    const winnerEl = document.getElementById('winner-seat');
+    if (winnerEl && hand.winner_seat) winnerEl.value = hand.winner_seat;
+    updateDiscardedByDropdown();
+    const discardedEl = document.getElementById('discarded-by');
+    if (discardedEl && hand.discarded_by) discardedEl.value = hand.discarded_by;
+    updateHandLabels();
+    renderResults();
+}
+
+function applyRulesToLocalUI(rules) {
+    const eastEl = document.getElementById('rule-east-doubling');
+    const dblEl = document.getElementById('rule-discarder-pays-double');
+    const allEl = document.getElementById('rule-discarder-pays-all');
+    if (eastEl && rules.eastDoublingEnabled !== undefined) eastEl.checked = rules.eastDoublingEnabled;
+    if (dblEl && rules.discarderPaysDoubleEnabled !== undefined) dblEl.checked = rules.discarderPaysDoubleEnabled;
+    if (allEl && rules.discarderPaysAllEnabled !== undefined) allEl.checked = rules.discarderPaysAllEnabled;
+    renderResults();
+}
+
+// --- Payout matrix rendering (pure calc lives in mahjong-scoring-engine.js) ---
+
+function renderResults() {
+    const winner = document.getElementById('winner-seat').value;
+    const discardedByRaw = document.getElementById('discarded-by').value;
+    const eastDoublingEnabled = document.getElementById('rule-east-doubling').checked;
+    const discarderPaysDoubleEnabled = document.getElementById('rule-discarder-pays-double').checked;
+    const discarderPaysAllEnabled = document.getElementById('rule-discarder-pays-all').checked;
+
+    const { baseScores } = computeAllBaseScores(winner, eastDoublingEnabled, remoteSelections);
+    const { matrix, netResults } = computePayoutMatrix({
+        winner, discardedByRaw, eastDoublingEnabled, discarderPaysDoubleEnabled, discarderPaysAllEnabled, baseScores
+    });
+
+    seats.forEach(p1 => {
+        seats.forEach(p2 => {
+            if (p1 === p2) return;
+            const cellValue = matrix[p1][p2];
+            const cellElement = document.getElementById(`cell-${p1}-${p2}`);
+            if (cellElement) {
+                cellElement.innerText = cellValue > 0 ? `+${cellValue}` : cellValue;
+                cellElement.className = '';
+                if (cellValue > 0) cellElement.classList.add('pos-val');
+                else if (cellValue < 0) cellElement.classList.add('neg-val');
+                else cellElement.classList.add('zero-val');
+            }
+        });
+        const netElement = document.getElementById(`net-${p1}`);
+        if (netElement) {
+            const netResult = netResults[p1];
+            netElement.innerText = netResult > 0 ? `+${netResult}` : netResult;
+            netElement.className = 'net-col';
+            if (netResult > 0) netElement.classList.add('pos-val');
+            else if (netResult < 0) netElement.classList.add('neg-val');
+        }
+    });
+}
+
+function renderSeatsStatus() {
+    const strip = document.getElementById('other-seats-status');
+    if (!strip) return;
+    strip.innerHTML = seats.map(seat => {
+        const submitted = !!submittedSeats[seat];
+        const label = seat === mySeat ? seat + ' (you)' : seat;
+        return `<div class="seat-status-chip${submitted ? ' submitted' : ''}">${label}: ${submitted ? 'Submitted ✓' : 'Waiting…'}</div>`;
+    }).join('');
+}
+
+function updateButtonsForHandStatus() {
+    const nextBtn = document.getElementById('next-hand-btn');
+    if (!nextBtn) return;
+    const allSubmitted = seats.every(s => submittedSeats[s]);
+    nextBtn.classList.toggle('hidden-element', !(allSubmitted || (currentHand && currentHand.status === 'complete')));
+}
+
+async function fetchHandSubmissions() {
+    if (!currentHand) return;
+    const { data } = await supabaseClient
+        .from('hand_submissions')
+        .select('seat, selections')
+        .eq('hand_id', currentHand.id);
+    remoteSelections = {};
+    submittedSeats = {};
+    (data || []).forEach(row => {
+        submittedSeats[row.seat] = true;
+        remoteSelections[row.seat] = row.selections;
+    });
+    renderSeatsStatus();
+    updateButtonsForHandStatus();
+    renderResults();
+}
+
+async function maybeCompleteHand() {
+    if (!currentHand) return;
+    const allSubmitted = seats.every(s => submittedSeats[s]);
+    if (allSubmitted && currentHand.status !== 'complete') {
+        await supabaseClient.from('hands').update({ status: 'complete' }).eq('id', currentHand.id);
+        currentHand.status = 'complete';
+        updateButtonsForHandStatus();
+        showSyncToast('All seats submitted — results ready');
+    }
+}
+
+async function startNextHandAndRedirect() {
+    if (!currentGame || !currentHand) return;
+    const nextBtn = document.getElementById('next-hand-btn');
+    if (nextBtn) nextBtn.disabled = true;
+    const { data: hand, error } = await supabaseClient
+        .from('hands')
+        .insert({ game_id: currentGame.id, hand_number: currentHand.hand_number + 1, status: 'collecting' })
+        .select()
+        .single();
+    if (error) {
+        showSyncToast('Could not start next hand: ' + error.message);
+        if (nextBtn) nextBtn.disabled = false;
+        return;
+    }
+    await supabaseClient.from('games').update({ current_hand_id: hand.id }).eq('id', currentGame.id);
+    window.location.href = 'shared-game.html?room=' + encodeURIComponent(currentGame.room_code) + '&seat=' + encodeURIComponent(mySeat);
+}
+
+function showFinalResultsBanner() {
+    clearLocalSession();
+    ['hand-info-card', 'other-seats-status'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden-element');
+    });
+    document.querySelectorAll('.action-bar .btn').forEach(btn => btn.classList.add('hidden-element'));
+    const banner = document.getElementById('results-banner');
+    if (banner) banner.classList.remove('hidden-element');
+    const sub = document.getElementById('results-banner-sub');
+    if (sub && currentGame) sub.textContent = 'Room ' + currentGame.room_code;
+}
+
+async function endGame() {
+    if (!confirm('End this game for everyone?')) return;
+    await supabaseClient.from('games').update({ status: 'closed' }).eq('id', currentGame.id);
+    showFinalResultsBanner();
+}
+
+// --- Realtime subscriptions -------------------------------------------------
+
+function subscribeToHand(handId) {
+    if (handChannel) supabaseClient.removeChannel(handChannel);
+    handChannel = supabaseClient
+        .channel('hand-' + handId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'hand_submissions', filter: 'hand_id=eq.' + handId },
+            async () => { await fetchHandSubmissions(); await maybeCompleteHand(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'hands', filter: 'id=eq.' + handId },
+            (payload) => {
+                if (payload.new) {
+                    currentHand = { ...currentHand, ...payload.new };
+                    applyHandRowToLocalUI(payload.new);
+                    updateButtonsForHandStatus();
+                }
+            })
+        .subscribe();
+}
+
+function subscribeToGame(gameId) {
+    if (gameChannel) supabaseClient.removeChannel(gameChannel);
+    gameChannel = supabaseClient
+        .channel('game-' + gameId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: 'id=eq.' + gameId },
+            (payload) => {
+                if (!payload.new) return;
+                currentGame = { ...currentGame, ...payload.new };
+                if (payload.new.status === 'closed') { showFinalResultsBanner(); return; }
+                if (payload.new.rules) applyRulesToLocalUI(payload.new.rules);
+                if (payload.new.current_hand_id && currentHand && payload.new.current_hand_id !== currentHand.id) {
+                    // Another device started the next hand — follow them there.
+                    window.location.href = 'shared-game.html?room=' + encodeURIComponent(currentGame.room_code) + '&seat=' + encodeURIComponent(mySeat);
+                }
+            })
+        .subscribe();
+}
+
+// --- Page load ---------------------------------------------------------------
+
+window.onload = async function() {
+    const params = new URLSearchParams(window.location.search);
+    const roomCode = params.get('room');
+    mySeat = params.get('seat');
+    deviceToken = getOrCreateDeviceToken();
+
+    if (!roomCode) { goToLobby(); return; }
+
+    if (!supabaseConfigured) {
+        document.getElementById('other-seats-status').textContent =
+            'Supabase is not configured yet. See SUPABASE_SETUP.md, then fill in SUPABASE_URL/SUPABASE_ANON_KEY in mahjong-supabase.js.';
+        return;
+    }
+
+    const { data: game } = await supabaseClient.from('games').select().eq('room_code', roomCode).maybeSingle();
+    if (!game) { goToLobby(); return; }
+    currentGame = game;
+
+    document.getElementById('room-code-badge').textContent = currentGame.room_code;
+    document.getElementById('my-seat-label').textContent = (mySeat && seats.includes(mySeat)) ? (mySeat.charAt(0) + mySeat.slice(1).toLowerCase()) : '—';
+
+    if (mySeat && seats.includes(mySeat)) {
+        const { data: seatRow } = await supabaseClient
+            .from('seats').select().eq('game_id', currentGame.id).eq('seat', mySeat).maybeSingle();
+        if (seatRow && seatRow.device_token === deviceToken) {
+            saveLocalSession(currentGame.room_code, currentGame.id, mySeat, deviceToken);
+        }
+    }
+
+    if (!currentGame.current_hand_id) {
+        if (currentGame.status === 'closed') { showFinalResultsBanner(); return; }
+        goToLobby();
+        return;
+    }
+
+    const { data: hand } = await supabaseClient.from('hands').select().eq('id', currentGame.current_hand_id).maybeSingle();
+    if (!hand) { goToLobby(); return; }
+    currentHand = hand;
+
+    if (currentGame.rules) applyRulesToLocalUI(currentGame.rules);
+    applyHandRowToLocalUI(currentHand);
+    await fetchHandSubmissions();
+
+    if (currentGame.status === 'closed') {
+        showFinalResultsBanner();
+        return;
+    }
+
+    await maybeCompleteHand();
+    subscribeToHand(currentHand.id);
+    subscribeToGame(currentGame.id);
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Chinese Classical Mahjong Scorer — Lobby</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="mahjong-supabase.js"></script>
+    <link rel="stylesheet" href="mahjong-shared.css">
+    <style>
+    .lobby-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 420px;
+        margin: 0 auto;
+        padding: 8px 0 20px;
+    }
+    .lobby-box {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .lobby-box h3 {
+        margin: 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #b32424;
+    }
+    .lobby-input {
+        height: 44px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        padding: 0 10px;
+        text-transform: uppercase;
+    }
+    .lobby-error {
+        color: #c62828;
+        font-size: 13px;
+        min-height: 16px;
+    }
+    .lobby-link-box {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .lobby-link-box input {
+        flex: 1;
+        height: 40px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0 8px;
+        font-size: 13px;
+        color: #555;
+    }
+    .seat-pick-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .seat-pick-btn {
+        height: 56px;
+        border-radius: 10px;
+        border: 2px solid #b32424;
+        background: #fff;
+        color: #b32424;
+        font-weight: 800;
+        font-size: 15px;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+    .seat-pick-btn:disabled {
+        border-color: #ccc;
+        color: #aaa;
+        cursor: not-allowed;
+        background: #f5f5f5;
+    }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="lobby" class="lobby-panel">
+        <div class="title-grid-table" style="margin-bottom: 4px;">
+            <div class="title-icon">🀄</div>
+            <div class="title-line1">Chinese Classical (Shared)</div>
+        </div>
+
+        <div class="lobby-box" id="lobby-create-join">
+            <h3>Create a Game</h3>
+
+            <div class="meta-item">
+                <span style="white-space: nowrap; font-size: 14px;">Winner</span>
+                <select class="meta-select" id="lobby-winner-seat" onchange="updateLobbyDiscardedBy()">
+                    <option value="NONE">Wall</option>
+                    <option value="EAST">East</option>
+                    <option value="SOUTH">South</option>
+                    <option value="WEST">West</option>
+                    <option value="NORTH">North</option>
+                </select>
+            </div>
+            <div class="meta-item">
+                <span style="white-space: nowrap; font-size: 14px;">Discarded by</span>
+                <select class="meta-select" id="lobby-discarded-by" disabled>
+                    <option value="SELFDRAW">Self-Drawn</option>
+                </select>
+            </div>
+
+            <div style="border-top: 1px solid #eee; padding-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-east-doubling" checked>
+                    Enable East Doubling
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-double" onchange="onDiscarderRuleChange('double')">
+                    Discarder Pays Double
+                </label>
+                <label class="meta-checkbox-label">
+                    <input type="checkbox" id="rule-discarder-pays-all" onchange="onDiscarderRuleChange('all')">
+                    Discarder Pays All
+                </label>
+            </div>
+
+            <button class="btn" style="width: 100%;" onclick="createGame()">Create New Game</button>
+
+            <h3 style="margin-top: 6px;">Join a Game</h3>
+            <input class="lobby-input" id="join-code-input" placeholder="ROOM CODE" maxlength="6">
+            <button class="btn" onclick="joinGameFromInput()">Join Game</button>
+            <div class="lobby-error" id="lobby-error"></div>
+        </div>
+
+        <div class="lobby-box hidden-element" id="lobby-seat-picker">
+            <h3>Room <span id="lobby-room-code"></span> — Pick Your Seat</h3>
+            <div class="lobby-link-box">
+                <input id="lobby-share-link" readonly>
+                <button class="btn" style="padding:0 14px;" onclick="copyShareLink()">Copy</button>
+            </div>
+            <div class="seat-pick-grid" id="seat-pick-grid"></div>
+            <div class="lobby-error" id="seat-pick-error"></div>
+        </div>
+    </div>
+</div>
+
+<div class="sync-toast" id="sync-toast"></div>
+
+<script>
+const seats = ['EAST', 'SOUTH', 'WEST', 'NORTH'];
+let currentGame = null;
+let deviceToken = null;
+
+function requireSupabase() {
+    if (!supabaseConfigured) {
+        document.getElementById('lobby-error').textContent =
+            'Supabase is not configured yet (placeholder credentials). See SUPABASE_SETUP.md, then fill in SUPABASE_URL/SUPABASE_ANON_KEY in mahjong-supabase.js.';
+        return false;
+    }
+    return true;
+}
+
+function updateLobbyDiscardedBy() {
+    const winner = document.getElementById('lobby-winner-seat').value;
+    const select = document.getElementById('lobby-discarded-by');
+    select.innerHTML = '<option value="SELFDRAW">Self-Drawn</option>';
+    if (winner !== 'NONE') {
+        seats.forEach(seat => {
+            if (seat !== winner) {
+                const opt = document.createElement('option');
+                opt.value = seat;
+                opt.textContent = seat.charAt(0) + seat.slice(1).toLowerCase();
+                select.appendChild(opt);
+            }
+        });
+    }
+    select.disabled = (winner === 'NONE');
+}
+
+function onDiscarderRuleChange(which) {
+    if (which === 'double' && document.getElementById('rule-discarder-pays-double').checked) {
+        document.getElementById('rule-discarder-pays-all').checked = false;
+    } else if (which === 'all' && document.getElementById('rule-discarder-pays-all').checked) {
+        document.getElementById('rule-discarder-pays-double').checked = false;
+    }
+}
+
+async function createGame() {
+    document.getElementById('lobby-error').textContent = '';
+    if (!requireSupabase()) return;
+
+    const lobbyWinner = document.getElementById('lobby-winner-seat').value;
+    const lobbyDiscardedBy = document.getElementById('lobby-discarded-by').value;
+    const roomCode = generateRoomCode();
+    const rules = {
+        eastDoublingEnabled: document.getElementById('rule-east-doubling').checked,
+        discarderPaysDoubleEnabled: document.getElementById('rule-discarder-pays-double').checked,
+        discarderPaysAllEnabled: document.getElementById('rule-discarder-pays-all').checked
+    };
+
+    const { data, error } = await supabaseClient
+        .from('games')
+        .insert({ room_code: roomCode, rules, status: 'active' })
+        .select()
+        .single();
+
+    if (error) {
+        document.getElementById('lobby-error').textContent = 'Could not create game: ' + error.message;
+        return;
+    }
+
+    currentGame = data;
+
+    // Seed hand #1 now, pre-populated with the lobby's winner/discarded-by
+    // selection, so shared-game.html has a hand ready as soon as a seat is claimed.
+    const { data: hand, error: handError } = await supabaseClient
+        .from('hands')
+        .insert({
+            game_id: currentGame.id,
+            hand_number: 1,
+            status: 'collecting',
+            winner_seat: lobbyWinner,
+            discarded_by: lobbyWinner === 'NONE' ? 'SELFDRAW' : lobbyDiscardedBy
+        })
+        .select()
+        .single();
+    if (!handError && hand) {
+        await supabaseClient.from('games').update({ current_hand_id: hand.id }).eq('id', currentGame.id);
+        currentGame.current_hand_id = hand.id;
+    }
+
+    history.pushState({}, '', '?room=' + roomCode);
+    showSeatPicker();
+}
+
+async function joinGameFromInput() {
+    const code = (document.getElementById('join-code-input').value || '').trim().toUpperCase();
+    if (!code) {
+        document.getElementById('lobby-error').textContent = 'Enter a room code.';
+        return;
+    }
+    await joinGame(code);
+}
+
+async function joinGame(roomCode) {
+    document.getElementById('lobby-error').textContent = '';
+    if (!requireSupabase()) return;
+
+    const { data, error } = await supabaseClient
+        .from('games')
+        .select()
+        .eq('room_code', roomCode)
+        .maybeSingle();
+
+    if (error || !data) {
+        document.getElementById('lobby-error').textContent = 'Room not found. Check the code and try again.';
+        return;
+    }
+
+    if (data.status === 'closed') {
+        document.getElementById('lobby-error').textContent = 'This game has already ended.';
+        return;
+    }
+
+    currentGame = data;
+    history.pushState({}, '', '?room=' + roomCode);
+    showSeatPicker();
+}
+
+async function showSeatPicker() {
+    document.getElementById('lobby-create-join').classList.add('hidden-element');
+    const picker = document.getElementById('lobby-seat-picker');
+    picker.classList.remove('hidden-element');
+    document.getElementById('lobby-room-code').textContent = currentGame.room_code;
+    const link = window.location.origin + window.location.pathname + '?room=' + currentGame.room_code;
+    document.getElementById('lobby-share-link').value = link;
+
+    const { data: claimedSeats } = await supabaseClient
+        .from('seats')
+        .select('seat')
+        .eq('game_id', currentGame.id);
+    const taken = new Set((claimedSeats || []).map(r => r.seat));
+
+    const grid = document.getElementById('seat-pick-grid');
+    grid.innerHTML = seats.map(seat =>
+        `<button class="seat-pick-btn" id="seat-pick-${seat}" ${taken.has(seat) ? 'disabled' : ''} onclick="claimSeat('${seat}')">${seat}${taken.has(seat) ? ' (taken)' : ''}</button>`
+    ).join('');
+}
+
+function copyShareLink() {
+    const input = document.getElementById('lobby-share-link');
+    input.select();
+    navigator.clipboard && navigator.clipboard.writeText(input.value);
+    showSyncToast('Link copied');
+}
+
+async function claimSeat(seat) {
+    document.getElementById('seat-pick-error').textContent = '';
+    deviceToken = getOrCreateDeviceToken();
+
+    const { error } = await supabaseClient
+        .from('seats')
+        .insert({ game_id: currentGame.id, seat, device_token: deviceToken });
+
+    if (error) {
+        document.getElementById('seat-pick-error').textContent = 'Seat taken — pick another.';
+        showSeatPicker();
+        return;
+    }
+
+    saveLocalSession(currentGame.room_code, currentGame.id, seat, deviceToken);
+    window.location.href = 'shared-game.html?room=' + encodeURIComponent(currentGame.room_code) + '&seat=' + encodeURIComponent(seat);
+}
+
+window.onload = async function() {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get('room');
+    deviceToken = getOrCreateDeviceToken();
+
+    if (!supabaseConfigured) {
+        document.getElementById('lobby-error').textContent =
+            'Supabase is not configured yet — this is a placeholder build. See SUPABASE_SETUP.md, then fill in SUPABASE_URL/SUPABASE_ANON_KEY in mahjong-supabase.js.';
+        return;
+    }
+
+    // Auto-rejoin: if this device already has a saved seat for this room,
+    // skip straight to the right page instead of showing the lobby again.
+    const saved = loadLocalSession();
+    if (saved && (!urlRoom || urlRoom === saved.roomCode)) {
+        const { data: game } = await supabaseClient.from('games').select().eq('id', saved.gameId).maybeSingle();
+        const { data: seatRow } = game ? await supabaseClient.from('seats').select().eq('game_id', saved.gameId).eq('seat', saved.seat).maybeSingle() : { data: null };
+        if (game && seatRow && seatRow.device_token === saved.deviceToken) {
+            const target = game.status === 'closed' ? 'shared-results.html' : 'shared-game.html';
+            window.location.href = target + '?room=' + encodeURIComponent(game.room_code) + '&seat=' + encodeURIComponent(saved.seat);
+            return;
+        }
+        clearLocalSession();
+    }
+
+    if (urlRoom) {
+        await joinGame(urlRoom);
+    }
+    // Otherwise: leave the create/join lobby panel showing.
+};
+</script>
+
+</body>
+</html>
